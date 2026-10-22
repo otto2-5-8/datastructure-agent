@@ -1,0 +1,37 @@
+/* ui-entry.css — 03 的 UI 成果入口（只负责顶栏那枚链接，不碰 02 的页面壳样式）
+   放在 03 自己的 features/visualization/ 下，避免改 02 的 styles/workbench.css。 */
+
+.page-header .ui-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 12px;
+  padding: 7px 14px;
+  border: 1px solid rgba(65, 118, 230, 0.42);
+  border-radius: 999px;
+  background: rgba(65, 118, 230, 0.08);
+  color: #2d51b8;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.page-header .ui-entry:hover,
+.page-header .ui-entry:focus-visible {
+  background: rgba(65, 118, 230, 0.16);
+  border-color: rgba(65, 118, 230, 0.7);
+  outline: none;
+}
+
+.page-header .ui-entry::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #8fb4ff, #2d51b8);
+}
+
+/* 顶栏是 02 的 flex 布局（space-between）：margin-left:auto 让链接与状态球一起靠右 */

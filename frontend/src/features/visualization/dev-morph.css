@@ -1,0 +1,976 @@
+/* ============================================================================
+   dev-morph.css — 开发页 v2（五区联动）的样式
+   视觉基线取自 branch03 对真实站点页面的实测：暖白底 #f9f8f8、唯一强调色 #4176e6、
+   两档圆角（容器 24 / 控件 18 / 行动 100）、极淡描边、几乎不用投影。
+
+   v2 的改法（按用户意见）：
+     · 删掉居中大标题区（形变标记缩到顶栏里，26px）；
+     · **核心内容不再套"窗口"**：内容区没有卡片底、没有边框、没有投影，
+       分隔只用 1px 淡描边 —— 看起来是长在页面上的，而不是浮在页面上的一个框。
+   ========================================================================== */
+
+:root {
+  /* 颜色 */
+  --bg-page: #f9f8f8;
+  --text: #1e232c;
+  --text-2: rgba(30, 35, 44, 0.62);
+  --text-3: rgba(30, 35, 44, 0.42);
+  --brand: #4176e6;
+  --brand-12: rgba(65, 118, 230, 0.12);
+  --brand-30: rgba(65, 118, 230, 0.3);
+  --ok: #1f9d55;
+  --ok-12: rgba(31, 157, 85, 0.12);
+  --bad: #d94c4c;
+  --bad-12: rgba(217, 76, 76, 0.12);
+  --hairline: rgba(9, 45, 78, 0.12);
+  --hairline-soft: rgba(9, 45, 78, 0.07);
+
+  /* 圆角 / 间距 */
+  --r-card: 24px;
+  --r-ctrl: 14px;
+  --r-pill: 100px;
+
+  /* 字体 */
+  --font: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------- 背景氛围
+   纯 CSS：三团缓慢漂移的径向渐变 + 一层极淡网格。
+   真实的流场画布在参考区 branch02（不参与构建、产品不引用），这里只做等效观感。 */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(156, 193, 231, 0.28) 0%, rgba(249, 248, 248, 0) 62%),
+    var(--bg-page);
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(46px);
+  opacity: 0.62;
+  will-change: transform;
+}
+
+.aurora-blob.b1 {
+  width: 46vw; height: 46vw;
+  left: -6vw; top: -10vw;
+  background: radial-gradient(circle at 40% 40%, rgba(156, 193, 231, 0.85), rgba(156, 193, 231, 0) 68%);
+  animation: drift-1 46s ease-in-out infinite alternate;
+}
+
+.aurora-blob.b2 {
+  width: 38vw; height: 38vw;
+  right: -4vw; top: 4vw;
+  background: radial-gradient(circle at 55% 45%, rgba(103, 153, 254, 0.55), rgba(103, 153, 254, 0) 70%);
+  animation: drift-2 61s ease-in-out infinite alternate;
+}
+
+.aurora-blob.b3 {
+  width: 54vw; height: 30vw;
+  left: 22vw; bottom: -14vw;
+  background: radial-gradient(circle at 50% 50%, rgba(183, 200, 254, 0.6), rgba(183, 200, 254, 0) 72%);
+  animation: drift-3 74s ease-in-out infinite alternate;
+}
+
+@keyframes drift-1 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(9vw, 6vw, 0) scale(1.16); }
+}
+@keyframes drift-2 {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to   { transform: translate3d(-8vw, 9vw, 0) scale(0.92); }
+}
+@keyframes drift-3 {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to   { transform: translate3d(6vw, -7vw, 0) scale(1.12); }
+}
+
+.aurora-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(to right, rgba(9, 45, 78, 0.045) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(to bottom, rgba(9, 45, 78, 0.045) 0 1px, transparent 1px 72px);
+  -webkit-mask-image: radial-gradient(115% 80% at 50% 34%, #000 0%, rgba(0, 0, 0, 0.25) 58%, transparent 84%);
+  mask-image: radial-gradient(115% 80% at 50% 34%, #000 0%, rgba(0, 0, 0, 0.25) 58%, transparent 84%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+}
+
+/* ---------------------------------------------------------------- 骨架 */
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 28px 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 底部传输条是 fixed 的：只在代码显示区给它留出高度，别压住内容 */
+body[data-view="code"] .app { padding-bottom: 86px; }
+
+/* 顶栏：65px，与站点一致 */
+.topbar {
+  flex: 0 0 auto;
+  height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; color: var(--brand); min-width: 0; }
+
+.brand .mark {
+  width: 16px; height: 16px;
+  border-radius: 50% 50% 50% 5px;
+  background: currentColor;
+  transform: rotate(-18deg);
+  flex: 0 0 auto;
+}
+
+.brand .word { font-size: 16px; font-weight: 500; letter-spacing: 0.2px; }
+
+.brand .sep { width: 1px; height: 13px; background: var(--hairline); margin: 0 2px; }
+
+.brand .proj { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+
+/* 形变标记：26px，贴在品牌位后面；切区时 24 个极径点各自流到新形状 */
+.morph {
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+#glyph-path {
+  fill: url(#glyphFill);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 1.4;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+
+.ghost-select {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  max-width: 260px;
+}
+
+.ghost-select:hover { border-color: var(--hairline); }
+.ghost-select:focus-visible { outline: 2px solid var(--brand-30); outline-offset: 2px; }
+
+.badge {
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-pill);
+  background: var(--brand-12);
+  border: 1px solid var(--brand-30);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-soft {
+  background: transparent;
+  border-color: var(--hairline);
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.muted { color: var(--text-3); font-size: 12px; }
+
+/* ---------------------------------------------------------------- 功能区切换（dock） */
+.dock {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--hairline-soft);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 弹簧驱动的滑动高亮（位置/宽度由 JS 每帧写入） */
+.dock-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+  box-shadow: 0 8px 18px -12px rgba(65, 118, 230, 0.9);
+  transform: translateX(0);
+  pointer-events: none;
+}
+
+.tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.28s var(--ease-out);
+}
+
+.tab:hover { color: var(--text); }
+.tab.is-active { color: #fff; }
+.tab svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.tab:focus-visible { outline: 2px solid var(--brand-30); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab { transition: none; }
+}
+
+/* 当前区的一句话说明（代替被删掉的居中大标题） */
+.view-desc {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+  min-height: 20px;
+}
+
+/* 布局控件：单区切换 / 三栏同屏 */
+.layout-toggle {
+  align-self: center;
+  margin: 8px auto 0;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-soft);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.layout-toggle button {
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+
+.layout-toggle button:hover { color: var(--text); }
+.layout-toggle button.is-on { background: var(--brand); color: #fff; }
+.layout-toggle button:focus-visible { outline: 2px solid var(--brand-30); outline-offset: 2px; }
+
+/* ================ 三栏同屏：代码显示 | 算法可视化 | 步骤辅导 摆在同一屏 ================
+   三个区同时可见、并排；练习与记录仍走单区切换。窗口在这一模式下改成一列铺满，
+   并且不再可拖动/缩放（拖拽只在单区模式里生效）。过渡 = 错峰淡入 + 平台位移弹簧。 */
+body[data-layout="triptych"] .panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+body[data-layout="triptych"] .panel {
+  position: static;
+  inset: auto;
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+  pointer-events: auto;
+  overflow: auto;
+  padding: 2px;
+  transition: opacity 0.42s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+/* 错峰：左→中→右 依次浮现 */
+body[data-layout="triptych"] .panel[data-view="code"] { opacity: 1; transform: none; transition-delay: 0ms; }
+body[data-layout="triptych"] .panel[data-view="viz"] { opacity: 1; transform: none; transition-delay: 70ms; }
+body[data-layout="triptych"] .panel[data-view="guide"] { opacity: 1; transform: none; transition-delay: 140ms; }
+
+body[data-layout="triptych"] .panel-quiz,
+body[data-layout="triptych"] .panel-log { display: none; }
+
+/* 三栏里可视化窗口铺满自己那一列，不可拖不可缩。
+   注意 .vizwin 的父级是 #vizwin-host（普通 div，高度 auto），所以必须先把宿主撑满，
+   否则 height:100% 解析成 auto，窗口只剩标题栏那么高。 */
+body[data-layout="triptych"] #vizwin-host {
+  height: 100%;
+  min-height: 0;
+}
+
+body[data-layout="triptych"] .vizwin {
+  position: relative;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 10px;
+  resize: none;
+  overflow: hidden;
+}
+
+body[data-layout="triptych"] .vizwin .win-body-viz { min-width: 0; overflow: hidden; }
+body[data-layout="triptych"] .vizwin .timeline { min-width: 0; overflow: hidden; }
+
+/* 窄列里把时间轴的"用例/速度/起始-当前-结束"收起来（底部传输条已经有这些），只留传送键 + 刻度 */
+body[data-layout="triptych"] .vizwin .tl-left,
+body[data-layout="triptych"] .vizwin .tl-right { display: none; }
+body[data-layout="triptych"] .vizwin .tl-head { justify-content: center; }
+body[data-layout="triptych"] .vizwin .viewport-head .vh-sub { display: none; }
+
+/* 代码列变窄：字号收一点，行内横向滚动；代码与变量改成上下排，别在 300px 里塞两列 */
+body[data-layout="triptych"] .panel[data-view="code"] .code-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+body[data-layout="triptych"] .panel[data-view="code"] .vars-col {
+  border-left: 0;
+  padding-left: 0;
+  border-top: 1px solid var(--hairline-soft);
+  padding-top: 12px;
+}
+body[data-layout="triptych"] .panel[data-view="code"] .code-list { font-size: 11.5px; line-height: 1.7; }
+body[data-layout="triptych"] .panel[data-view="code"] .vars { gap: 5px 10px; grid-template-columns: 74px 1fr; }
+body[data-layout="triptych"] .panel[data-view="code"] .vars dd { font-size: 13.5px; }
+
+/* 窄列里"本步解释"浮层会盖掉半张画布：这一模式下收起它，
+   本步说明在下方传输条与右侧「步骤辅导」栏里都能看到 */
+body[data-layout="triptych"] .vizwin [data-explain-host] { display: none; }
+
+body[data-layout="triptych"] .vizwin .win-bar { cursor: default; }
+
+/* 三栏时底部传输条始终显示（它驱动当前步骤） */
+body[data-layout="triptych"] .transport { display: block; }
+body[data-layout="triptych"] .app { padding-bottom: 86px; }
+
+/* ---------------------------------------------------------------- 工作区 + 可移动窗口
+   形态沿用旧 dev.html 的 .win / .win-bar（dot + 标题 + 副标题 + 动作），
+   但改成浅色玻璃：窗口可以**拖动标题栏移动**、拖右下角缩放、按钮可最大化/复位。 */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 470px;
+  margin-top: 6px;
+}
+
+.panels { position: absolute; inset: 0; }
+
+.panel {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.4s var(--ease-out), transform 0.5s var(--ease-out);
+  pointer-events: none;
+}
+
+/* 除了可视化（那个是窗口，自带留白与滚动），其余四区直接铺在页面上 */
+.panel:not(.panel-viz) {
+  padding: 18px 0 8px;
+  overflow: auto;
+}
+
+.panel.is-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
+}
+
+
+/* 练习区：直接铺在页面上，内容居中、行宽受限（这是"页面"，不是窗口） */
+.panel-quiz {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* 记录区：同样直接铺开 */
+.panel-log { display: flex; flex-direction: column; gap: 14px; }
+
+/* 专栏小标题：只有一条淡描边，不用盒子 */
+.col-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline-soft);
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.col-head code { font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+.col-head-plain { border-bottom: 0; margin-bottom: 6px; padding-bottom: 0; }
+
+/* ---------------------------------------------------------------- 面板一：代码显示 */
+.code-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.85fr);
+  gap: 32px;
+  height: 100%;
+}
+
+.code-col, .vars-col { min-height: 0; display: flex; flex-direction: column; }
+
+/* 中间只用一条竖线分区，不加底色 */
+.vars-col {
+  border-left: 1px solid var(--hairline-soft);
+  padding-left: 32px;
+}
+
+.code-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+  overflow: auto;
+  flex: 1 1 auto;
+}
+
+.code-list li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 12px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  color: #2b3444;
+  white-space: pre;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.code-list li .ln { color: var(--text-3); text-align: right; user-select: none; }
+
+.code-list li.is-current {
+  background: var(--brand-12);
+  box-shadow: inset 3px 0 0 0 var(--brand);
+  color: var(--brand);
+}
+
+.vars { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; margin: 0; }
+.vars dt { color: var(--text-3); font-size: 13px; }
+
+.vars dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vars dd.is-null { color: var(--text-3); }
+
+/* 本步说明：左侧一条竖直强调线，不做填充盒子 */
+.event-line {
+  margin: 16px 0 0;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--brand-30);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.vars-legend { margin: 14px 0 0; font-size: 12px; line-height: 1.7; color: var(--text-3); }
+.vars-legend b { color: var(--text-2); }
+
+/* ---------------------------------------------------------------- 面板二：算法可视化 */
+
+.viz-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.viz-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-3);
+}
+
+/* ---------------------------------------------------------------- 面板三：步骤辅导 */
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 32px;
+  height: 100%;
+  min-height: 0;
+}
+
+.guide-side { display: flex; flex-direction: column; min-height: 0; }
+
+.vars-compact { gap: 6px 12px; margin-bottom: 18px; }
+.vars-compact dd { font-size: 14px; }
+
+.guide-hints { min-height: 0; overflow: auto; }
+
+.guide-hints ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-hints li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+.guide-hints li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-30);
+}
+
+.guide-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--hairline-soft);
+  padding-left: 32px;
+}
+
+.guide-messages {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 1px 8px;
+}
+
+/* 消息：用户是气泡（消息本身，不是"窗口"），助手是贴底的文字块 */
+.msg { max-width: 86%; font-size: 13.5px; line-height: 1.7; }
+
+.msg-user {
+  align-self: flex-end;
+  padding: 8px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--brand-12);
+  color: #23406f;
+}
+
+.msg-ai {
+  align-self: flex-start;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--hairline);
+  color: var(--text);
+}
+
+.msg-ai .tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.msg-ai p { margin: 0 0 6px; }
+.msg-ai p:last-child { margin-bottom: 0; }
+
+.msg-ai ul { margin: 6px 0 0; padding-left: 18px; }
+.msg-ai li { margin-bottom: 3px; font-size: 13px; color: var(--text-2); }
+
+.msg-ai details { margin-top: 8px; }
+.msg-ai summary { cursor: pointer; font-size: 12px; color: var(--brand); }
+
+/* 模型回答尾部的「模型 / Token / 耗时 / 费用」一行 */
+.msg-ai .msg-meta {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 辅导徽标按后端能力着色（真实模型 / Mock / 未配置 / 未连接） */
+#guide-badge[data-mode="deepseek"] { border-color: rgba(65, 118, 230, 0.45); color: var(--brand); }
+#guide-badge[data-mode="mock"] { border-color: rgba(206, 148, 36, 0.45); color: #8a6a12; }
+#guide-badge[data-mode="disabled"],
+#guide-badge[data-mode="unknown"] { border-color: var(--hairline); color: var(--text-3); }
+
+.msg-ai pre {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(9, 45, 78, 0.05);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+  overflow: auto;
+  max-height: 190px;
+}
+
+.guide-suggests { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+
+.suggest {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.suggest:hover { border-color: var(--brand-30); color: var(--brand); }
+
+.guide-composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  border-top: 1px solid var(--hairline-soft);
+  padding-top: 12px;
+}
+
+.guide-composer textarea {
+  flex: 1 1 auto;
+  min-height: 46px;
+  max-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--r-ctrl);
+  background: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+}
+
+.guide-composer textarea:focus { outline: none; border-color: var(--brand-30); background: #fff; }
+
+.guide-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.7; color: var(--text-3); }
+
+/* ---------------------------------------------------------------- 面板四：过程练习 */
+
+
+.quiz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.quiz-q {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.55;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.quiz-opts { display: flex; flex-direction: column; gap: 8px; }
+
+/* 选项是控件不是窗口：透明底 + 淡描边 */
+.quiz-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--r-ctrl);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease-out);
+}
+
+.quiz-opt:hover:not(:disabled) {
+  border-color: var(--brand-30);
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+.quiz-opt .tag {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: 7px;
+  background: var(--brand-12);
+  color: var(--brand);
+  font-size: 12px;
+  font-family: var(--mono);
+  flex: 0 0 auto;
+}
+
+.quiz-opt.is-correct { border-color: var(--ok); background: var(--ok-12); }
+.quiz-opt.is-correct .tag { background: transparent; color: var(--ok); }
+.quiz-opt.is-wrong { border-color: var(--bad); background: var(--bad-12); }
+.quiz-opt.is-wrong .tag { background: transparent; color: var(--bad); }
+.quiz-opt:disabled { cursor: default; }
+
+.quiz-fb { margin: 0; min-height: 22px; font-size: 13.5px; line-height: 1.7; color: var(--text-2); }
+.quiz-fb.is-ok { color: var(--ok); }
+.quiz-fb.is-bad { color: var(--bad); }
+
+.quiz-actions { margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- 面板五：本机记录 */
+
+.log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+/* 统计：一排数字，用竖线分隔，不做卡片 */
+.log-summary {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--hairline-soft);
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.log-stat { flex: 1 1 140px; padding: 12px 18px 12px 0; }
+.log-stat + .log-stat { border-left: 1px solid var(--hairline-soft); padding-left: 18px; }
+.log-stat b { display: block; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.log-stat span { font-size: 12px; color: var(--text-3); }
+
+.log-body { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+
+.log-row {
+  display: grid;
+  grid-template-columns: 62px 60px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--hairline-soft);
+  font-size: 13px;
+}
+
+.log-row .t { color: var(--text-3); font-family: var(--mono); font-size: 12px; }
+.log-row .k { font-size: 12px; color: var(--brand); }
+.log-row.is-ok .k { color: var(--ok); }
+.log-row.is-bad .k { color: var(--bad); }
+
+.log-empty { margin: 28px auto; text-align: center; color: var(--text-3); font-size: 13.5px; line-height: 1.8; }
+
+/* ---------------------------------------------------------------- 传输条
+   只在「代码显示」这一区出现；**整屏铺满**，背景与页面同色、上沿一条淡描边 + 轻微模糊，
+   内容仍按页面宽度居中，看起来是长在页面底部的一条，而不是浮着的一个卡片。 */
+.transport {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: none;                     /* 默认不显示，靠 body[data-view] 打开 */
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--hairline-soft);
+  background:
+    linear-gradient(180deg, rgba(249, 248, 248, 0.72) 0%, rgba(249, 248, 248, 0.97) 45%, #f9f8f8 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 只有代码显示区把底部传输条露出来（可视化有自己的时间轴，其它三区不需要） */
+body[data-view="code"] .transport { display: block; }
+
+.transport-inner {
+  width: 100%;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-out), background 0.2s ease, opacity 0.2s ease;
+}
+
+.btn:hover:not(:disabled) { background: #3a68d6; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.btn.ghost { background: transparent; border-color: var(--hairline); color: var(--text); }
+.btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.7); border-color: var(--brand-30); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.small { height: 28px; padding: 0 12px; font-size: 12.5px; }
+.btn:focus-visible { outline: 2px solid var(--brand-30); outline-offset: 2px; }
+
+.speed { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-3); }
+
+.speed select {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.step-count { font-family: var(--mono); font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
+
+.step-desc {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 提示 / 启动失败 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  background: rgba(30, 35, 44, 0.9);
+  color: #fff;
+  font-size: 13px;
+  max-width: min(560px, calc(100vw - 48px));
+  text-align: center;
+  box-shadow: 0 14px 30px -18px rgba(9, 45, 78, 0.7);
+}
+
+.toast[hidden] { display: none; }
+
+.boot-error {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--r-ctrl);
+  background: #fdecea;
+  border: 1px solid #e0a9a2;
+  color: #8f2417;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.boot-error code { font-family: var(--mono); background: #fff; padding: 1px 4px; border-radius: 4px; }
+
+/* ---------------------------------------------------------------- 窄屏 */
+@media (max-width: 900px) {
+  .app { padding: 0 18px; }
+  .code-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .vars-col { border-left: 0; padding-left: 0; border-top: 1px solid var(--hairline-soft); padding-top: 16px; }
+  .guide-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .guide-chat { border-left: 0; padding-left: 0; border-top: 1px solid var(--hairline-soft); padding-top: 16px; }
+  .brand .proj, .brand .sep { display: none; }
+  .stage { min-height: 520px; }
+}
+
+@media (max-width: 620px) {
+  .app { padding: 0 14px; }
+  .dock { width: 100%; overflow-x: auto; justify-content: flex-start; }
+  .tab { padding: 0 11px; font-size: 12.5px; }
+  .tab span { display: none; }
+  .tab.is-active span { display: inline; }
+  .btn, .quiz-opt { font-size: 13px; }
+  .stage { min-height: 540px; }
+  .step-desc { display: none; }
+}

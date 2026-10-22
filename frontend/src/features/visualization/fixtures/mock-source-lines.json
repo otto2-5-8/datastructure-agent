@@ -1,0 +1,30 @@
+{
+  "$comment": "成员03 开发自测页用的【模拟展示源码】。用来演示『当前步骤 → 对应代码行』的联动，不是 04 交付的正式展示代码，也不是已核验的行映射。正式 C/C++ 源码与 sourceVersion/lineId 映射属 04（docs/architecture/contract-alignment.md C04），目前仍是待提案状态。",
+  "mock": true,
+  "sourceVersionNote": "与 fixtures/mock-runs.json 里的 sourceVersion 保持一致，便于按版本校验；真实版本由 04 冻结。",
+  "sources": [
+    {
+      "sourceVersion": "mock-binary-search-v1",
+      "language": "c",
+      "mock": true,
+      "title": "闭区间二分查找（展示用，模拟）",
+      "lines": [
+        { "text": "int binarySearch(const int A[], int n, int target) {" },
+        { "text": "  int left = 0, right = n - 1;", "lineId": "init" },
+        { "text": "  while (left <= right) {" },
+        { "text": "    int mid = left + (right - left) / 2;", "lineId": "probe" },
+        { "text": "    if (A[mid] == target) {" },
+        { "text": "      return mid;", "lineId": "found" },
+        { "text": "    }" },
+        { "text": "    if (A[mid] < target) {" },
+        { "text": "      left = mid + 1;", "lineId": "update-left" },
+        { "text": "    } else {" },
+        { "text": "      right = mid - 1;", "lineId": "update-right" },
+        { "text": "    }" },
+        { "text": "  }" },
+        { "text": "  return -1;", "lineId": "not-found" },
+        { "text": "}" }
+      ]
+    }
+  ]
+}

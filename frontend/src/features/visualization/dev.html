@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>看懂每一步 · 演示台（模拟数据）</title>
+    <!--
+      开发页 v1（Blender 深色壳，03 自测用；正式页面入口由 02 维护）
+
+      ======== [02 unsupports] 本页里"应该 02 做"的部分都只是替身 ========
+      · 页面壳 / 布局 / 分隔条 → 02 的 frontend/index.html + app.js
+      · 数组·目标输入、开始分析、加载与校验反馈 → 02 的 features/workbench/
+      · 调创建运行接口拿 run（runId/steps/sourceLines） → 02 的接口调用层
+        （本页读 fixtures/mock-runs.json 顶着用）
+      · 下方「代码 · 当前步指向的行」与变量面板 → 02 主责（本页只是替身）
+      · 把 runId + stepIndex 广播给代码面板 / 05 / 07 → 02 的装配层（C06 待提案）
+      · 给 03 的正式挂载点与卸载入口：02 尚未提供
+      其它替身：右侧聊天窗口 = 05 的位置（无模型后端）；本页不含练习/记录。
+      =====================================================================
+    -->
+    <link rel="stylesheet" href="./visualization.css">
+    <link rel="stylesheet" href="./dev-theme.css">
+  </head>
+  <body class="theme-blender">
+    <!-- ================= 顶栏（Blender 风格：菜单 / 工作区 / 数据块选择器） ================= -->
+    <header class="topbar">
+      <span class="brand">看懂每一步</span>
+      <nav class="menus" aria-label="菜单">
+        <button type="button" disabled title="本次不实现">文件</button>
+        <button type="button" disabled title="本次不实现">视图</button>
+        <button type="button" disabled title="本次不实现">演示</button>
+        <button type="button" disabled title="本次不实现">帮助</button>
+      </nav>
+      <div class="workspaces" role="tablist" aria-label="工作区">
+        <button type="button" class="ws is-active" role="tab" aria-selected="true">演示</button>
+        <button type="button" class="ws" role="tab" aria-selected="false" disabled title="本次不实现">调试</button>
+        <button type="button" class="ws" role="tab" aria-selected="false" disabled title="本次不实现">内容</button>
+      </div>
+      <div class="topbar-right">
+        <span class="badge-mock" title="步骤与代码都来自 fixtures，不是 04 引擎输出">模拟数据 mock</span>
+      </div>
+    </header>
+
+    <!-- ================= 输入工作台（本轮按用户要求回退，不再挂载；模块 dev-input-panel.js 保留备用） ================= -->
+
+    <!-- 主区：左＝步骤辅导聊天窗口（DeepSeek 式）｜可拖动分隔条｜右＝可视化窗口（下挂 场景集合与代码） -->
+    <div class="split" id="split">
+      <!-- ============ 左窗口：步骤辅导（DeepSeek 式问答窗口） ============ -->
+      <section class="col-chat" id="col-chat" aria-label="步骤辅导">
+        <div class="win">
+          <div class="win-bar">
+            <span class="win-dot"></span>
+            <span class="win-title">步骤辅导</span>
+            <span class="win-sub">DeepSeek 式问答 · 针对当前步骤</span>
+            <span class="win-sub">面板属 <b>05</b>（本页为替身）</span>
+          </div>
+          <div class="win-body">
+            <div id="agent-host"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider" id="divider" role="separator" aria-orientation="vertical" tabindex="0"
+           aria-label="拖动调整比例（默认 1:2：左聊天、右可视化），双击复位，方向键微调"></div>
+
+      <!-- ============ 右窗口：可视化 ============ -->
+      <section class="col-viz" id="col-viz" aria-label="可视化">
+        <div class="win">
+          <div class="win-bar">
+            <span class="win-dot"></span>
+            <span class="win-title">可视化</span>
+            <span class="win-sub">二分查找 · 闭区间 · 数组视图</span>
+            <button type="button" class="bl-btn win-action" id="btn-toggle-panels"
+                    title="折叠/展开下方的场景集合与代码，把更多高度让给可视化">折叠下方面板</button>
+          </div>
+          <div class="win-body win-body-viz">
+        <!-- ---------------- 1. 视口 = 可视化演示（填满整块画布，可拖拽平移、滚轮缩放） ---------------- -->
+        <section class="viewport" aria-label="可视化演示">
+          <div class="viewport-head">
+            <span class="vh-title">数组视图</span>
+            <span class="vh-sub">二分查找 · 闭区间</span>
+            <span class="vh-actions">
+              <button type="button" class="bl-btn" id="btn-view-reset" title="复位视图（Home）">复位视图</button>
+              <button type="button" class="bl-btn" id="btn-replay">重播入场动效</button>
+            </span>
+          </div>
+          <div class="viewport-body" id="viewport-body">
+            <!-- 两层网格：细格 16px、粗格 80px；透明度随缩放交叉变化（见 dev-grid.js） -->
+            <div class="viewport-grid" id="grid-fine" aria-hidden="true"></div>
+            <div class="viewport-grid" id="grid-coarse" aria-hidden="true"></div>
+            <div class="viewport-scene" id="viewport-scene">
+              <div id="viz-host"></div>
+            </div>
+          </div>
+          <!-- 本步解释浮层：在被变换的图层外面，所以钉在右上角不会跟着平移缩放 -->
+          <div id="explain-host" aria-label="本步解释"></div>
+          <div class="viewport-warn" id="viewport-warn" hidden></div>
+          <div class="viewport-hint">拖拽平移 · 滚轮缩放 · Home 复位</div>
+        </section>
+
+        <!-- ---------------- 2. 时间轴 = 播放控制与步骤的时间关系 ---------------- -->
+        <section class="timeline" aria-label="播放控制">
+          <div class="tl-head">
+            <div class="tl-left">
+              <label class="bl-field">用例
+                <select id="run-select" aria-label="用例"></select>
+              </label>
+              <label class="bl-field">速度
+                <select id="speed-select" aria-label="播放速度">
+                  <option value="1500">1.5 秒/步</option>
+                  <option value="1000" selected>1 秒/步</option>
+                  <option value="500">0.5 秒/步</option>
+                  <option value="250">0.25 秒/步</option>
+                </select>
+              </label>
+            </div>
+            <div class="tl-transport" id="transport">
+              <button type="button" class="tl-btn" id="btn-reset" title="跳到开始并停止（重置）" aria-label="重置">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2.5" width="1.6" height="9"/><path d="M11 2.5 5.2 7 11 11.5z"/></svg>
+              </button>
+              <button type="button" class="tl-btn" id="btn-prev" title="上一步（恢复上一个快照）" aria-label="上一步">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 2.5 4 7l5.5 4.5z"/></svg>
+              </button>
+              <button type="button" class="tl-btn btn-play" id="btn-play" title="播放" aria-label="播放">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.5 10.5 7 3.5 11.5z"/></svg>
+              </button>
+              <button type="button" class="tl-btn btn-pause" id="btn-pause" title="暂停（停在当前步，可提问）" aria-label="暂停">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="3.4" y="2.5" width="2" height="9"/><rect x="6.6" y="2.5" width="2" height="9"/></svg>
+              </button>
+              <button type="button" class="tl-btn" id="btn-next" title="下一步" aria-label="下一步">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5 8.4 7 2.5 11.5z"/></svg>
+              </button>
+              <button type="button" class="tl-btn" id="btn-last" title="跳到结束" aria-label="跳到结束">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 2.5 6.8 7 1 11.5z"/><rect x="8.4" y="2.5" width="1.6" height="9"/></svg>
+              </button>
+            </div>
+            <div class="tl-right">
+              <span class="bl-num">起始 <b id="tl-start">1</b></span>
+              <span class="bl-num">当前 <b id="tl-current">1</b></span>
+              <span class="bl-num">结束 <b id="tl-end">1</b></span>
+            </div>
+          </div>
+          <div class="tl-ruler" id="ruler" tabindex="0" role="slider"
+               aria-label="步骤时间轴：点击或按左右方向键跳到某一步"
+               aria-valuemin="1" aria-valuemax="1" aria-valuenow="1">
+            <div class="tl-ticks" id="tl-ticks"></div>
+            <div class="tl-playhead" id="tl-playhead"><span class="tl-playhead-label" id="tl-playhead-label">1</span></div>
+          </div>
+        </section>
+          </div>
+        </div>
+
+        <!-- ---- 可视化窗口下方：场景集合（图例）与代码，都常显、可各自折叠 ---- -->
+        <div class="col-panels" id="col-panels" aria-label="场景集合与代码">
+        <details class="bl-group" open style="margin-bottom:6px">
+          <summary>场景集合（图例）</summary>
+          <div class="bl-group-body" style="padding:0">
+            <div id="outliner-host"></div>
+            <p class="bl-hint" style="padding:6px 8px 0">
+              原来挤在视口里的图例放在这里：符号 + 含义 + <b>当前值</b>，随步骤实时更新。
+            </p>
+          </div>
+        </details>
+
+        <details class="bl-group" open>
+          <summary>代码 · 当前步指向的行</summary>
+          <div class="bl-group-body">
+            <div id="code-host"></div>
+            <p class="bl-hint" style="margin-top:8px">
+              <code>[before it happens]</code> 代码行高亮与 left/right/mid 变量面板属 <b>02</b>；
+              展示源码与 lineId 映射属 <b>04</b>（C04 未冻结）。这里是 03 开发页的<b>演示替身</b>。
+            </p>
+          </div>
+        </details>
+
+        <details class="bl-group">
+          <summary>播放状态 getState()</summary>
+          <div class="bl-group-body">
+            <pre class="bl-pre" id="state-json">—</pre>
+            <p class="bl-hint"><code>[before it happens]</code> 这段状态将来由 02 的代码行高亮与 left/right/mid 变量面板消费。</p>
+          </div>
+        </details>
+
+        <details class="bl-group">
+          <summary>计时器审计 getDiagnostics()</summary>
+          <div class="bl-group-body">
+            <pre class="bl-pre" id="diag-json">—</pre>
+            <p class="bl-hint">判据：<code>activeTimers</code> 恒为 <b>0 或 1</b>。反复点播放/暂停/换用例后若出现 ≥2，即"两套计时器"缺陷。当前：<span id="diag-verdict">—</span></p>
+          </div>
+        </details>
+
+        <details class="bl-group">
+          <summary>契约自检（Step v1 + lineId 覆盖）</summary>
+          <div class="bl-group-body"><div id="validate-report">—</div></div>
+        </details>
+
+        <details class="bl-group">
+          <summary>动效自查（7 项）</summary>
+          <div class="bl-group-body">
+            <ul class="bl-list">
+              <li>格子<b>错峰淡入上浮</b>（8 档延迟）</li>
+              <li><b>L/R 滑动</b>到新边界（FLIP 位移，<b>不重播出现动效</b>）</li>
+              <li>新中点 <b>M 脉冲</b>；中点未变时不重复脉冲</li>
+              <li>被排除的格子<b>淡出变灰</b>；回看时<b>复原放大</b></li>
+              <li>区间端点变化时<b>底色闪一下</b>（没动的那侧不闪）</li>
+              <li>命中格<b>弹跳提亮</b></li>
+              <li>步骤圆点<b>呼吸</b>并在走过时染色</li>
+            </ul>
+            <p class="bl-hint" style="margin-top:6px">指针只在真的新出现时播出现动效（首帧的 L/R、或 mid 由"未计算"变为有值时的 M）。系统开启"减少动态效果"时全部收敛。</p>
+          </div>
+        </details>
+
+        <details class="bl-group">
+          <summary>尚未接入的依赖（[before it happens]）</summary>
+          <div class="bl-group-body">
+            <ul class="bl-list">
+              <li><code>[before it happens]</code> <b>真实轨迹</b>：等 04 交付 <code>backend/src/algorithms</code> 与创建 run 的接口；切换时只替换注入的 <code>steps</code>/<code>runId</code>。</li>
+              <li><code>[before it happens]</code> <b>正式展示源码与 lineId 映射</b>：等 04（C04）。现在用 <code>fixtures/mock-source-lines.json</code>，人工编写未核验。</li>
+              <li><code>[before it happens]</code> <b>代码面板与变量面板</b>：属 02。本页的代码面板是演示替身。</li>
+              <li><code>[before it happens]</code> <b>正式挂载点</b>：等 02 在 <code>frontend/index.html</code> 装配；本页不是交付页面。</li>
+              <li><code>[before it happens]</code> <b>C06 接口确认</b>：<code>createVisualization</code> / <code>createPlayback</code> 签名与广播载荷是 03 的提案，待 02 确认并同步 05、07。</li>
+              <li><code>[before it happens]</code> <b>暂停后提问与练习联动</b>：05、07 尚未接入。</li>
+              <li><code>[before it happens]</code> <b>录屏与验收</b>：模拟数据不得作为验收证据。</li>
+            </ul>
+          </div>
+        </details>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= 状态栏 ================= -->
+    <footer class="statusbar">
+      <span id="step-readout" role="status">尚未装载</span>
+      <span class="sb-right">
+        <span id="sb-source">数据源：模拟（mock）</span>
+        <span id="sb-count">步骤 0</span>
+      </span>
+    </footer>
+
+    <script type="module">
+      import { createVisualization } from './index.js';
+      import { createPlayback } from '../playback/index.js';
+      import { createCodePanel } from './dev-code-panel.js';
+      import { createOutliner } from './dev-outliner.js';
+      import { applyGridOpacity } from './dev-grid.js';
+      import { createAgentPanel } from './dev-agent-panel.js';
+
+      const EVENTS = new Set(['init', 'probe', 'move-left', 'move-right', 'found', 'not-found']);
+      const REQUIRED = ['schemaVersion', 'algorithm', 'stepIndex', 'event', 'sourceVersion', 'lineId', 'array', 'target', 'variables', 'done', 'result'];
+      const FINAL_EVENTS = new Set(['found', 'not-found']);
+
+      const split = document.querySelector('#split');
+      const divider = document.querySelector('#divider');
+      const ruler = document.querySelector('#ruler');
+      const tickHost = document.querySelector('#tl-ticks');
+      const playhead = document.querySelector('#tl-playhead');
+      const playheadLabel = document.querySelector('#tl-playhead-label');
+      const transport = document.querySelector('#transport');
+      const tlStart = document.querySelector('#tl-start');
+      const tlCurrent = document.querySelector('#tl-current');
+      const tlEnd = document.querySelector('#tl-end');
+      const runSelect = document.querySelector('#run-select');
+      const speedSelect = document.querySelector('#speed-select');
+      const vizHost = document.querySelector('#viz-host');
+      const codeHost = document.querySelector('#code-host');
+      const outlinerHost = document.querySelector('#outliner-host');
+      const agentHost = document.querySelector('#agent-host');
+      const explainHost = document.querySelector('#explain-host');
+      const viewportBody = document.querySelector('#viewport-body');
+      const viewportScene = document.querySelector('#viewport-scene');
+      const viewportWarn = document.querySelector('#viewport-warn');
+      const panelsPane = document.querySelector('#col-panels');
+      const togglePanelsBtn = document.querySelector('#btn-toggle-panels');
+      const gridLayers = {
+        fine: document.querySelector('#grid-fine'),
+        coarse: document.querySelector('#grid-coarse')
+      };
+      const stepReadout = document.querySelector('#step-readout');
+      const sbCount = document.querySelector('#sb-count');
+      const sbSource = document.querySelector('#sb-source');
+      const stateJson = document.querySelector('#state-json');
+      const diagJson = document.querySelector('#diag-json');
+      const diagVerdict = document.querySelector('#diag-verdict');
+      const validateReport = document.querySelector('#validate-report');
+      const buttons = {
+        play: document.querySelector('#btn-play'),
+        pause: document.querySelector('#btn-pause'),
+        prev: document.querySelector('#btn-prev'),
+        next: document.querySelector('#btn-next'),
+        reset: document.querySelector('#btn-reset'),
+        last: document.querySelector('#btn-last')
+      };
+
+      // ---------------- 左右比例：默认 1:2（左聊天、右可视化），可拖动 / 双击复位 / 方向键微调 ----------------
+      const DEFAULT_RATIO = 1 / 3;   // 左窗格占 1/3
+      let ticks = [];
+
+      function setRatio(leftFraction) {
+        const pct = Math.min(80, Math.max(25, leftFraction * 100));
+        split.style.gridTemplateColumns = `${pct}% 6px minmax(0, 1fr)`;
+      }
+      function resetRatio() {
+        split.style.gridTemplateColumns = '';
+        setRatio(DEFAULT_RATIO);
+      }
+      let dragging = false;
+      divider.addEventListener('pointerdown', (event) => {
+        dragging = true;
+        divider.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+      });
+      divider.addEventListener('pointermove', (event) => {
+        if (!dragging) return;
+        const rect = split.getBoundingClientRect();
+        setRatio((event.clientX - rect.left) / rect.width);
+      });
+      const stopDrag = () => { dragging = false; };
+      divider.addEventListener('pointerup', stopDrag);
+      divider.addEventListener('pointercancel', stopDrag);
+      divider.addEventListener('dblclick', resetRatio);
+      divider.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+        event.preventDefault();
+        if (event.key === 'Home') { resetRatio(); return; }
+        const rect = split.getBoundingClientRect();
+        const current = split.style.gridTemplateColumns
+          ? parseFloat(split.style.gridTemplateColumns) / 100
+          : DEFAULT_RATIO;
+        setRatio(current + (event.key === 'ArrowLeft' ? -0.02 : 0.02));
+      });
+
+      // ---------------- 视口平移 / 缩放（Blender 式：拖拽平移、滚轮缩放、Home 复位） ----------------
+      const view = { x: 0, y: 0, scale: 1, min: 0.3, max: 3, maxFit: 1.8 };
+      let panning = false;
+      let panStart = null;
+
+      function applyView() {
+        viewportScene.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+        // 网格透明度跟着缩放交叉变化：贴近时粗格主导，拉远时细格主导
+        applyGridOpacity(gridLayers, view.scale);
+      }
+
+      /** 画布太矮/太窄时明确告警 —— 宁可报出来，也不要让可视化静悄悄消失在布局里。 */
+      function warnIfCanvasTiny() {
+        if (!viewportWarn) return;
+        const w = Math.round(viewportBody.clientWidth);
+        const h = Math.round(viewportBody.clientHeight);
+        const tiny = w < 240 || h < 170;
+        viewportWarn.hidden = !tiny;
+        if (tiny) {
+          viewportWarn.textContent = `可视区只有 ${w}×${h}px，数组会被压得很小：`
+            + '可以点本窗口标题栏的「折叠下方面板」，或拖动中间分隔条、放大浏览器窗口。';
+        }
+      }
+
+      /**
+       * 自适应取景：把整组数组缩放到画布内并居中。
+       * offsetWidth/offsetHeight 取的是【未经变换】的布局尺寸（transform 不影响它们），
+       * 所以不会因为当前缩放值而算错。装配完与窗口尺寸变化时都调用它，
+       * 保证一打开整组数组完整可见，不会因为"太大"被切掉。
+       */
+      function fitView() {
+        const cw = viewportBody.clientWidth || 1;
+        const ch = viewportBody.clientHeight || 1;
+        const sw = viewportScene.offsetWidth || 1;
+        const sh = viewportScene.offsetHeight || 1;
+        const fit = Math.min(cw / sw, ch / sh) * 0.92;
+        view.scale = Math.min(view.maxFit, Math.max(view.min, fit));
+        view.x = 0;
+        view.y = 0;
+        applyView();
+        warnIfCanvasTiny();
+      }
+
+      /** 折叠/展开下方面板：把高度还给可视化，并重新取景。 */
+      function setPanelsCollapsed(collapsed) {
+        panelsPane?.classList.toggle('is-collapsed', collapsed);
+        if (togglePanelsBtn) togglePanelsBtn.textContent = collapsed ? '展开下方面板' : '折叠下方面板';
+        fitView();
+      }
+      togglePanelsBtn?.addEventListener('click', () => {
+        setPanelsCollapsed(!panelsPane.classList.contains('is-collapsed'));
+      });
+      viewportBody.addEventListener('pointerdown', (event) => {
+        if (event.target.closest?.('button, select, input, .bsviz-explain')) return; // 别抢控件的点击
+        panning = true;
+        panStart = { x: event.clientX - view.x, y: event.clientY - view.y };
+        viewportBody.classList.add('is-panning');
+        viewportBody.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+      });
+      viewportBody.addEventListener('pointermove', (event) => {
+        if (!panning) return;
+        view.x = event.clientX - panStart.x;
+        view.y = event.clientY - panStart.y;
+        applyView();
+      });
+      const stopPan = () => { panning = false; viewportBody.classList.remove('is-panning'); };
+      viewportBody.addEventListener('pointerup', stopPan);
+      viewportBody.addEventListener('pointercancel', stopPan);
+      viewportBody.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        // 以光标为锚点缩放：光标下的那一点在缩放前后保持不动
+        const rect = viewportBody.getBoundingClientRect();
+        const cx = event.clientX - rect.left - rect.width / 2;
+        const cy = event.clientY - rect.top - rect.height / 2;
+        const next = Math.min(view.max, Math.max(view.min, view.scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
+        const k = next / view.scale;
+        view.x = cx - (cx - view.x) * k;
+        view.y = cy - (cy - view.y) * k;
+        view.scale = next;
+        applyView();
+      }, { passive: false });
+      window.addEventListener('keydown', (event) => {
+        if (event.key !== 'Home') return;
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName ?? '')) return;
+        event.preventDefault();
+        fitView();
+      });
+      // 窗口尺寸变化后重新取景，避免缩放后的内容跑出可视区
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(fitView, 120);
+      });
+      applyView();
+
+      // ---------------- 注入的请求函数（真实打接口；失败如实返回，不伪造数据） ----------------
+      async function request({ method = 'GET', path, body }) {
+        const response = await fetch(path, {
+          method,
+          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body: body ? JSON.stringify(body) : undefined
+        });
+        let parsed = null;
+        try { parsed = await response.json(); } catch { parsed = null; }
+        return { status: response.status, body: parsed };
+      }
+
+      // ---------------- 契约自检 ----------------
+      function validateRun(run) {
+        const problems = [];
+        const steps = Array.isArray(run.steps) ? run.steps : [];
+        const array = Array.isArray(run.array) ? run.array : [];
+        if (steps.length === 0) problems.push('steps 为空');
+        for (let i = 1; i < array.length; i += 1) {
+          if (array[i] < array[i - 1]) problems.push(`array 不是升序：下标 ${i}`);
+        }
+        steps.forEach((step, i) => {
+          for (const key of REQUIRED) if (!(key in step)) problems.push(`step[${i}] 缺字段 ${key}`);
+          if (step.stepIndex !== i) problems.push(`step[${i}] stepIndex=${step.stepIndex} 与数组位置不一致`);
+          if (!EVENTS.has(step.event)) problems.push(`step[${i}] 未知事件 ${step.event}`);
+          const v = step.variables ?? {};
+          for (const key of ['left', 'right', 'mid']) if (!(key in v)) problems.push(`step[${i}] variables 缺 ${key}`);
+          if (step.done === true && step.result === null) problems.push(`step[${i}] done=true 但 result=null`);
+          if (step.done !== true && step.result !== null && step.result !== undefined) problems.push(`step[${i}] 未结束但 result=${step.result}`);
+          if (v.mid !== null && v.mid !== undefined) {
+            if (v.mid < 0 || v.mid >= (step.array ?? []).length) problems.push(`step[${i}] mid=${v.mid} 越界`);
+            if (['init', 'move-left', 'move-right'].includes(step.event)) {
+              problems.push(`step[${i}] ${step.event} 事件带 mid=${v.mid}，违反"更新边界后 mid 置 null"`);
+            }
+          }
+          if (lineIds && !lineIds.has(step.lineId)) problems.push(`step[${i}] lineId="${step.lineId}" 在展示源码里没有对应行`);
+        });
+        if (steps.length > 0 && steps[steps.length - 1].done !== true) problems.push('最后一步 done 不是 true');
+        return problems;
+      }
+
+      let runs = [];
+      let lineIds = null;
+      let sources = [];
+      let viz = null;
+      let playback = null;
+      let codePanel = null;
+      let outliner = null;
+      let agentPanel = null;
+
+      // ---------------- 时间轴 ----------------
+      function buildRuler(steps) {
+        ticks = steps.map((step, index) => {
+          const tick = document.createElement('div');
+          tick.className = 'tl-tick';
+          if (FINAL_EVENTS.has(step.event)) tick.classList.add('is-end');
+          tick.dataset.index = String(index);
+          const dot = document.createElement('span');
+          dot.className = 'tl-dot';
+          tick.append(dot, document.createTextNode(String(index + 1)));
+          return tick;
+        });
+        tickHost.replaceChildren(...ticks);
+        tlStart.textContent = steps.length > 0 ? '1' : '0';
+        tlEnd.textContent = String(steps.length);
+        ruler.setAttribute('aria-valuemin', '1');
+        ruler.setAttribute('aria-valuemax', String(steps.length));
+      }
+
+      function updateRuler(state) {
+        ticks.forEach((tick, index) => {
+          tick.classList.remove('is-current');
+          if (index === state.stepIndex) tick.classList.add('is-current');
+        });
+        const total = Math.max(1, state.total);
+        const pos = ((state.stepIndex + 0.5) / total) * 100;
+        playhead.style.left = `${pos}%`;
+        playheadLabel.style.left = `${pos}%`;
+        playheadLabel.textContent = String(state.stepIndex + 1);
+        ruler.setAttribute('aria-valuenow', String(state.stepIndex + 1));
+        tlCurrent.textContent = String(state.stepIndex + 1);
+      }
+
+      /** 拖动/点击标尺跳到某一步：只用公开的 next()/prev()，不绕过单计时器纪律。 */
+      function seekTo(index) {
+        if (!playback) return;
+        const total = playback.getState().total;
+        const target = Math.min(total - 1, Math.max(0, index));
+        while (playback.getState().stepIndex < target) playback.next();
+        while (playback.getState().stepIndex > target) playback.prev();
+        renderState(playback.getState());
+      }
+
+      ruler.addEventListener('click', (event) => {
+        const rect = ruler.getBoundingClientRect();
+        const ratio = Math.min(0.999, Math.max(0, (event.clientX - rect.left) / rect.width));
+        seekTo(Math.floor(ratio * (ticks.length || 1)));
+      });
+      ruler.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const current = playback.getState().stepIndex;
+        if (event.key === 'Home') return seekTo(0);
+        if (event.key === 'End') return seekTo(ticks.length - 1);
+        seekTo(current + (event.key === 'ArrowLeft' ? -1 : 1));
+      });
+
+      // ---------------- 状态渲染 ----------------
+      function renderState(state) {
+        stepReadout.textContent = state.total > 0 && state.stepIndex >= 0
+          ? `第 ${state.stepIndex + 1} 步 / 共 ${state.total} 步　·　${state.playing ? '播放中' : '已暂停'}　·　间隔 ${state.intervalMs} ms`
+          : '无步骤';
+        buttons.prev.disabled = !state.canPrev;
+        buttons.next.disabled = !state.canNext;
+        buttons.last.disabled = !state.canNext;
+        buttons.reset.disabled = state.stepIndex === 0 && !state.playing;
+        transport.classList.toggle('is-playing', state.playing);
+        stateJson.textContent = JSON.stringify(state, null, 2);
+        const diag = playback.getDiagnostics();
+        diagJson.textContent = JSON.stringify(diag, null, 2);
+        const ok = diag.activeTimers === 0 || diag.activeTimers === 1;
+        diagVerdict.textContent = ok ? `${diag.activeTimers}（正常）` : `${diag.activeTimers}（缺陷：两套计时器）`;
+        diagVerdict.className = ok ? 'bl-ok' : 'bl-bad';
+        updateRuler(state);
+      }
+
+      /**
+       * 装配一次 run。
+       * [before it happens] 这几行就是将来 02 在 index.html 里要做的装配动作；
+       * 等 04 交付真实轨迹后，run 改从创建 run 的接口取得，此处逻辑不变。
+       */
+      function mountRun(run) {
+        playback?.destroy();   // 换 run 必先销毁旧实例：旧计时器与旧回调立即失效
+        viz?.destroy();
+        outliner?.destroy();
+        // 图例不再画在视口里（legend:false）；步骤圆点条也不再画（底部时间轴已经有了）。
+        // 解释面板挂到视口右上角的浮层容器，避免跟着平移缩放跑。
+        viz = createVisualization(vizHost, { run, explainContainer: explainHost });
+        outliner = createOutliner(outlinerHost, { run });
+
+        const version = run.steps[0]?.sourceVersion;
+        const source = sources.find((s) => s.sourceVersion === version);
+        codePanel?.destroy();
+        codePanel = createCodePanel(codeHost, {
+          source: source ?? { title: `未找到 sourceVersion=${version} 的展示源码`, mock: true, lines: [] }
+        });
+
+        buildRuler(run.steps);
+        sbSource.textContent = run.mock ? '数据源：模拟（mock）' : `数据源：${version}`;
+        sbCount.textContent = `步骤 ${run.steps.length}`;
+
+        playback = createPlayback({
+          runId: run.runId,
+          steps: run.steps,
+          intervalMs: Number(speedSelect.value),
+          onStepChange: (event) => {
+            viz.showStep(event.step);         // 1 视口：把这一步放大居中演示
+            outliner.update(event.step);      // 1' 右栏场景集合：符号/含义/当前值
+            codePanel.highlight(event.step);  // 3 代码：当前步指向那一行
+            agentPanel?.setContext({          // 步骤辅导：锁定"当前正停在哪一步"
+              runId: event.runId,
+              stepIndex: event.stepIndex,
+              event: event.step?.event ?? null,
+              step: event.step ?? null,       // 示例文本模板要用当前步骤的真实数值
+              description: `区间 ${event.step?.variables?.left}～${event.step?.variables?.right}`
+            });
+            renderState(event);               // 2 底部时间轴
+          }
+        });
+        outliner.update(run.steps[0]);
+        codePanel.highlight(run.steps[0]);
+        agentPanel?.setContext({
+          runId: run.runId,
+          stepIndex: run.steps[0].stepIndex,
+          event: run.steps[0].event,
+          step: run.steps[0],
+          description: `区间 ${run.steps[0].variables.left}～${run.steps[0].variables.right}`
+        });
+        renderState(playback.getState());
+        fitView();
+      }
+
+      function renderValidation() {
+        const lines = [];
+        let total = 0;
+        for (const run of runs) {
+          const problems = validateRun(run);
+          total += problems.length;
+          lines.push(`${run.mock ? '[mock] ' : ''}${run.runId}（${run.steps.length} 步）：${problems.length === 0 ? '通过' : `${problems.length} 个问题`}`);
+          for (const problem of problems) lines.push(`    - ${problem}`);
+        }
+        const summary = total === 0
+          ? `<span class="bl-ok">契约自检通过：${runs.length} 个用例、${total} 个问题（含 lineId 覆盖）。</span>`
+          : `<span class="bl-bad">契约自检发现 ${total} 个问题。</span>`;
+        validateReport.innerHTML = `${summary}<pre class="bl-pre" style="margin-top:6px">${lines.join('\n')}</pre>`;
+      }
+
+      // ---------------- 装载模拟装置 ----------------
+      const [fixture, sourceFixture] = await Promise.all([
+        (await fetch('./fixtures/mock-runs.json')).json(),
+        (await fetch('./fixtures/mock-source-lines.json')).json()
+      ]);
+      runs = fixture.runs;
+      sources = sourceFixture.sources;
+      lineIds = new Set(sources.flatMap((s) => s.lines.filter((l) => l.lineId).map((l) => l.lineId)));
+
+      runSelect.replaceChildren(...runs.map((run, i) => {
+        const option = document.createElement('option');
+        option.value = String(i);
+        option.textContent = run.label;
+        return option;
+      }));
+      resetRatio();
+      renderValidation();
+
+      // 步骤辅导聊天窗口（05 的替身，DeepSeek 式）：只创建一次，切 run / 切步骤时更新上下文
+      agentPanel = createAgentPanel(agentHost, { request });
+
+      mountRun(runs[0]);
+
+      runSelect.addEventListener('change', () => mountRun(runs[Number(runSelect.value)]));
+      speedSelect.addEventListener('change', () => { if (playback) renderState(playback.setSpeed(Number(speedSelect.value))); });
+      buttons.play.addEventListener('click', () => renderState(playback.play()));
+      buttons.pause.addEventListener('click', () => renderState(playback.pause()));
+      buttons.next.addEventListener('click', () => renderState(playback.next()));
+      buttons.prev.addEventListener('click', () => renderState(playback.prev()));
+      buttons.reset.addEventListener('click', () => renderState(playback.reset()));
+      buttons.last.addEventListener('click', () => seekTo(ticks.length - 1));
+      document.querySelector('#btn-replay').addEventListener('click', () => viz.playEnterAnimation());
+      document.querySelector('#btn-view-reset').addEventListener('click', fitView);
+    </script>
+  </body>
+</html>

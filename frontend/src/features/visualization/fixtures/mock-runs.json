@@ -1,0 +1,348 @@
+{
+  "$comment": "成员03 的模拟步骤装置（mock）。这里的数据由人工按 docs/architecture/trace-contract.md + shared/schemas/step.schema.json（Step v1）手写，【不是】04 引擎的输出，不得作为验收证据、不得写进答辩录屏。04 交付 backend/src/algorithms 后，本文件退化为回归用样例。",
+  "mock": true,
+  "sourceVersionNote": "sourceVersion 与 lineId 均为占位：真实 C/C++ 源码与行映射未冻结，见 docs/architecture/contract-alignment.md C04。",
+  "runs": [
+    {
+      "runId": "mock-unified",
+      "algorithm": "binary-search",
+      "sourceVersion": "mock-binary-search-v1",
+      "mock": true,
+      "label": "统一案例 [1,3,5,7,9] 目标 7（与交付预期五步一致）",
+      "array": [1, 3, 5, 7, 9],
+      "target": 7,
+      "steps": [
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 0,
+          "event": "init",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "init",
+          "array": [1, 3, 5, 7, 9],
+          "target": 7,
+          "variables": { "left": 0, "right": 4, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 1,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [1, 3, 5, 7, 9],
+          "target": 7,
+          "variables": { "left": 0, "right": 4, "mid": 2 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 2,
+          "event": "move-left",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "update-left",
+          "array": [1, 3, 5, 7, 9],
+          "target": 7,
+          "variables": { "left": 3, "right": 4, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 3,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [1, 3, 5, 7, 9],
+          "target": 7,
+          "variables": { "left": 3, "right": 4, "mid": 3 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 4,
+          "event": "found",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "found",
+          "array": [1, 3, 5, 7, 9],
+          "target": 7,
+          "variables": { "left": 3, "right": 4, "mid": 3 },
+          "done": true,
+          "result": 3
+        }
+      ]
+    },
+    {
+      "runId": "mock-not-found",
+      "algorithm": "binary-search",
+      "sourceVersion": "mock-binary-search-v1",
+      "mock": true,
+      "label": "同数组目标 4：未找到（验证空区间与不高亮假匹配）",
+      "array": [1, 3, 5, 7, 9],
+      "target": 4,
+      "steps": [
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 0,
+          "event": "init",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "init",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 0, "right": 4, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 1,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 0, "right": 4, "mid": 2 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 2,
+          "event": "move-right",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "update-right",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 0, "right": 1, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 3,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 0, "right": 1, "mid": 0 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 4,
+          "event": "move-left",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "update-left",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 1, "right": 1, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 5,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 1, "right": 1, "mid": 1 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 6,
+          "event": "move-left",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "update-left",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 2, "right": 1, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 7,
+          "event": "not-found",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "not-found",
+          "array": [1, 3, 5, 7, 9],
+          "target": 4,
+          "variables": { "left": 2, "right": 1, "mid": null },
+          "done": true,
+          "result": -1
+        }
+      ]
+    },
+    {
+      "runId": "mock-empty",
+      "algorithm": "binary-search",
+      "sourceVersion": "mock-binary-search-v1",
+      "mock": true,
+      "label": "空数组 [] 目标 7（不画任何格子）",
+      "array": [],
+      "target": 7,
+      "steps": [
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 0,
+          "event": "init",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "init",
+          "array": [],
+          "target": 7,
+          "variables": { "left": 0, "right": -1, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 1,
+          "event": "not-found",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "not-found",
+          "array": [],
+          "target": 7,
+          "variables": { "left": 0, "right": -1, "mid": null },
+          "done": true,
+          "result": -1
+        }
+      ]
+    },
+    {
+      "runId": "mock-single-found",
+      "algorithm": "binary-search",
+      "sourceVersion": "mock-binary-search-v1",
+      "mock": true,
+      "label": "单元素 [7] 目标 7（L/M/R 指向同一格）",
+      "array": [7],
+      "target": 7,
+      "steps": [
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 0,
+          "event": "init",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "init",
+          "array": [7],
+          "target": 7,
+          "variables": { "left": 0, "right": 0, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 1,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [7],
+          "target": 7,
+          "variables": { "left": 0, "right": 0, "mid": 0 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 2,
+          "event": "found",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "found",
+          "array": [7],
+          "target": 7,
+          "variables": { "left": 0, "right": 0, "mid": 0 },
+          "done": true,
+          "result": 0
+        }
+      ]
+    },
+    {
+      "runId": "mock-single-not-found",
+      "algorithm": "binary-search",
+      "sourceVersion": "mock-binary-search-v1",
+      "mock": true,
+      "label": "单元素 [7] 目标 4（一轮排除后结束）",
+      "array": [7],
+      "target": 4,
+      "steps": [
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 0,
+          "event": "init",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "init",
+          "array": [7],
+          "target": 4,
+          "variables": { "left": 0, "right": 0, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 1,
+          "event": "probe",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "probe",
+          "array": [7],
+          "target": 4,
+          "variables": { "left": 0, "right": 0, "mid": 0 },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 2,
+          "event": "move-right",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "update-right",
+          "array": [7],
+          "target": 4,
+          "variables": { "left": 0, "right": -1, "mid": null },
+          "done": false,
+          "result": null
+        },
+        {
+          "schemaVersion": "1.0",
+          "algorithm": "binary-search",
+          "stepIndex": 3,
+          "event": "not-found",
+          "sourceVersion": "mock-binary-search-v1",
+          "lineId": "not-found",
+          "array": [7],
+          "target": 4,
+          "variables": { "left": 0, "right": -1, "mid": null },
+          "done": true,
+          "result": -1
+        }
+      ]
+    }
+  ]
+}

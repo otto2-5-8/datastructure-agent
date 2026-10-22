@@ -1,0 +1,890 @@
+/*
+ * 成员03 开发自测页的【Blender 风格主题】（dev-only）
+ *
+ * 只服务 dev.html，不进生产；正式页面的视觉由 02 的 frontend/src/styles/ 决定。
+ * 布局对应需求里标注的三块：
+ *   1 视口（viewport）        ← 可视化演示
+ *   2 时间轴（timeline）      ← 播放控制与步骤的时间关系
+ *   3 属性栏（properties）    ← 对应代码，当前步的 lineId 指向那一行
+ *
+ * 深色主题在这里覆写 .bsviz 的 --viz-* 变量，模块文件保持浅色默认值不变。
+ */
+
+/* 高度链的第一环：没有它，下面 body 的 100% 会退化成 auto（见 .theme-blender 的注释） */
+html, body { height: 100%; }
+
+.theme-blender {
+  --bl-bg: #1d1d1d;
+  --bl-panel: #282828;
+  --bl-panel-alt: #303030;
+  --bl-head: #2b2b2b;
+  --bl-line: #101010;
+  --bl-line-soft: #3d3d3d;
+  --bl-text: #e5e5e5;
+  --bl-text-dim: #a0a0a0;
+  --bl-text-mute: #7a7a7a;
+  --bl-widget: #545454;
+  --bl-widget-hover: #656565;
+  --bl-accent: #4772b3;
+  --bl-accent-hi: #5d8fd6;
+  --bl-orange: #e87d0d;
+  --bl-green: #7bd15c;
+  --bl-red: #c04a4a;
+
+  margin: 0;
+  /* 高度链必须完整：html → body → .split → .col-chat/.col-viz → .win → .win-body。
+     少一环（例如只给 body 写 height:100% 而不给 html 写），body 的 100% 会退化成 auto，
+     flex/grid 的行高就变成"看内容"，于是：右侧栏拿不到受限高度 → 出不了滚动条、滚轮也滚不动；
+     视口那一行因为子元素全是绝对定位（内容高度为 0）而被压扁。 */
+  height: 100vh;   /* 兜底 */
+  height: 100dvh;  /* 移动端地址栏收放时更准 */
+  background: var(--bl-bg);
+  color: var(--bl-text);
+  font: 12px/1.45 "Segoe UI", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ================= 顶栏 ================= */
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 8px;
+  background: var(--bl-head);
+  border-bottom: 1px solid var(--bl-line);
+}
+
+.brand {
+  color: var(--bl-orange);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.menus { display: flex; gap: 1px; }
+.menus button {
+  background: none;
+  border: none;
+  color: #d0d0d0;
+  font: 11px/20px inherit;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.menus button:hover { background: var(--bl-line-soft); }
+.menus button:disabled { color: #6a6a6a; cursor: default; }
+.menus button:disabled:hover { background: none; }
+
+.workspaces { display: flex; gap: 2px; margin-left: 6px; }
+.ws {
+  font: 11px/20px inherit;
+  padding: 3px 12px;
+  border: none;
+  border-radius: 3px 3px 0 0;
+  background: none;
+  color: #b0b0b0;
+  cursor: pointer;
+}
+.ws:hover { background: var(--bl-line-soft); }
+.ws.is-active { background: var(--bl-bg); color: #fff; box-shadow: inset 0 2px 0 var(--bl-orange); }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+.badge-mock {
+  font: 11px/16px inherit;
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: #7a4a00;
+  border: 1px solid #a96a00;
+  color: #ffd9a0;
+  white-space: nowrap;
+}
+
+/* ================= 通用控件（Blender 风格） ================= */
+.bl-field { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--bl-text-dim); white-space: nowrap; }
+.bl-field select,
+.bl-field input {
+  height: 20px;
+  max-width: 260px;
+  padding: 0 4px;
+  background: var(--bl-widget);
+  color: var(--bl-text);
+  border: 1px solid var(--bl-line);
+  border-radius: 4px;
+  font: 11px/18px inherit;
+}
+.bl-field select:focus-visible,
+.bl-field input:focus-visible { outline: 1px solid var(--bl-accent-hi); }
+
+.bl-btn {
+  height: 22px;
+  padding: 0 10px;
+  background: var(--bl-widget);
+  color: var(--bl-text);
+  border: 1px solid var(--bl-line);
+  border-radius: 4px;
+  font: 11px/20px inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bl-btn:hover { background: var(--bl-widget-hover); }
+.bl-btn:active { background: var(--bl-accent); }
+.bl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.bl-num { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--bl-text-dim); }
+.bl-num b {
+  display: inline-block;
+  min-width: 30px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  background: var(--bl-widget);
+  border: 1px solid var(--bl-line);
+  border-radius: 3px;
+  color: var(--bl-text);
+  font-weight: 600;
+}
+
+/* ================= 主区：左窗口（聊天）｜分隔条｜右窗口（可视化） ================= */
+.split {
+  flex: 1 1 auto;
+  min-height: 0;   /* 允许被压缩：否则内容会把整个页面顶高、超出浏览器窗口 */
+  display: grid;
+  grid-template-columns: 1fr 6px 2fr;   /* 默认 1:2：左聊天、右可视化 */
+}
+
+/* 每个区域都做成"一个窗口"：带标题栏 + 边框 + 圆角，看起来像独立窗口 */
+/* 用 flex 纵向排列，而不是 grid 的 auto 轨道 —— 教训：
+   原来右侧用 `grid-template-rows: minmax(0,1fr) minmax(0,auto)` 把面板放在 auto 轨道，
+   并对面板写 max-height: 42%。百分比 max-height 对着"高度不确定的 auto 轨道"会失效，
+   于是面板按真实内容高度（大纲+代码约 700px）把轨道撑开，grid 只好把上面的 1fr
+   （可视化窗口）压到只剩几十像素 —— 表现就是"可视化不见了，要缩到 30% 才看得见"。
+   flex 下：可视化窗口 flex:1 抢剩余空间，面板区 flex:0 1 auto + 百分比上限，永远先满足可视化。 */
+.col-chat,
+.col-viz {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+}
+.col-chat > .win,
+.col-viz > .win { flex: 1 1 auto; min-height: 0; }
+
+.win {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  background: var(--bl-panel);
+  border: 1px solid var(--bl-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.win-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  background: var(--bl-head);
+  border-bottom: 1px solid var(--bl-line);
+}
+.win-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bl-accent-hi); flex: 0 0 auto; }
+.win-title { font: 600 11px/16px inherit; color: #e8e8e8; }
+.win-sub { font-size: 10px; color: var(--bl-text-mute); }
+
+.win-body { min-height: 0; }
+/* 可视化窗口的内部：上面画布铺满，下面时间轴 */
+.win-body-viz { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+
+/* 可视化窗口下方的常显面板区（场景集合 + 代码 + 调试分组），自己滚。
+   flex: 0 1 auto + max-height：内容短就按内容高，内容长就封顶并内部滚动；
+   这样可视化窗口永远至少占到 1 - max-height 的剩余高度。 */
+.col-panels {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 38%;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #5a5a5a #262626;
+}
+.col-panels.is-collapsed { display: none; }
+.col-panels::-webkit-scrollbar { width: 11px; }
+.col-panels::-webkit-scrollbar-track { background: #262626; }
+.col-panels::-webkit-scrollbar-thumb { background: #5a5a5a; border: 2px solid #262626; border-radius: 6px; }
+
+.divider { position: relative; background: var(--bl-line); cursor: col-resize; }
+.divider::after {
+  content: '';
+  position: absolute;
+  inset: 42% 1px;
+  background: #5a5a5a;
+  border-radius: 3px;
+}
+.divider:hover { background: #2a2a2a; }
+.divider:hover::after { background: var(--bl-accent-hi); }
+.divider:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--bl-accent-hi); }
+
+/* ================= 1. 视口：可视化演示（填满整块画布） ================= */
+.viewport { position: relative; min-height: 0; overflow: hidden; background: #303030; }
+
+/* 顶栏做成浮层，画布才能真正铺满整块区域（Blender 的视口头部也是浮在画布上的） */
+.viewport-head {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px;
+  background: rgba(43, 43, 43, 0.86);
+  border: 1px solid var(--bl-line);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.viewport-head .vh-title { color: var(--bl-text); }
+.viewport-head .vh-sub { color: var(--bl-text-mute); }
+.viewport-head .vh-actions { display: flex; gap: 6px; }
+
+/* 画布：网格地面 + 暗角，内容居中 */
+.viewport-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+  background-color: #303030;
+  /* 暗角留在容器背景上（在两层网格下面），网格单独成层以便按缩放调透明度 */
+  background-image: radial-gradient(ellipse at 50% 45%, #383838 0%, #2c2c2c 75%);
+}
+.viewport-body.is-panning { cursor: grabbing; }
+
+/* 两层网格（屏幕固定间距，不随缩放改间距）：
+   细格 16px、粗格 80px；透明度由 dev-grid.js 按缩放交叉调节。 */
+.viewport-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 180ms linear;
+}
+#grid-fine {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+#grid-coarse {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* 被平移/缩放的图层。注意：它带 transform，会成为绝对定位后代的包含块，
+   所以"本步解释"面板不能放在它里面（见 #explain-host）。 */
+.viewport-scene {
+  position: relative;
+  z-index: 1;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  padding: 24px 18px;
+}
+
+.viewport-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  z-index: 4;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+/* 画布太矮/太窄时的显式告警：宁可报出来，也不要让可视化静悄悄地消失 */
+.viewport-warn {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  z-index: 5;
+  max-width: 62%;
+  padding: 6px 9px;
+  border-radius: 4px;
+  font: 11px/17px inherit;
+  background: #7a4a00;
+  border: 1px solid #a96a00;
+  color: #ffe6bf;
+}
+.viewport-warn[hidden] { display: none; }
+
+/* 窗口标题栏里的小动作按钮 */
+.win-action { margin-left: auto; height: 18px; font-size: 10px; line-height: 16px; padding: 0 8px; }
+
+/* 本步解释：钉在视口右上角的浮层（在被变换的图层【外面】，所以不会跟着平移缩放） */
+#explain-host {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: min(420px, 52%);
+}
+#explain-host:empty { display: none; }
+#explain-host .bsviz-explain {
+  margin: 0;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+/* 深色主题下覆写动画模块的调色板 */
+.theme-blender .bsviz {
+  --viz-text: #e0e0e0;
+
+  --viz-legend-bg: #3a3a3a;
+  --viz-legend-border: #1d1d1d;
+  --viz-legend-text: #c0c0c0;
+  --viz-legend-range-bg: #2c3d56;
+  --viz-legend-range-border: #5d8fd6;
+
+  --viz-cell-bg: #3a3a3a;
+  --viz-cell-border: #1d1d1d;
+  --viz-index-text: #9a9a9a;
+  --viz-range-bg: #33465e;
+  --viz-range-edge: #5d8fd6;
+  --viz-range-flash: #4a6b96;
+  --viz-mid-edge: #7bd15c;
+  --viz-mid-ring: #3f6b33;
+  --viz-found-bg: #2f5a3f;
+  --viz-found-edge: #7bd15c;
+
+  --viz-ptr-l-fg: #ffffff;
+  --viz-ptr-l-bg: #4772b3;
+  --viz-ptr-r-fg: #ffd2d2;
+  --viz-ptr-r-bg: #7a3a3a;
+  --viz-ptr-m-fg: #bdf0d4;
+  --viz-ptr-m-bg: #2f6b4a;
+
+  --viz-empty-bg: #2a2a2a;
+  --viz-empty-border: #4a4a4a;
+  --viz-empty-text: #a0a0a0;
+
+  --viz-caption-bg: #2b2b2b;
+  --viz-caption-edge: #5d8fd6;
+  --viz-caption-text: #d0d0d0;
+  --viz-caption-found-bg: #23402f;
+  --viz-caption-found-edge: #7bd15c;
+  --viz-caption-found-text: #bdf0d4;
+  --viz-caption-muted-bg: #262626;
+  --viz-caption-muted-edge: #6a6a6a;
+  --viz-caption-muted-text: #b0b0b0;
+
+  --viz-status-bg: #262626;
+  --viz-status-text: #c8c8c8;
+
+  --viz-explain-bg: #2b2b2b;
+  --viz-explain-border: #101010;
+  --viz-explain-head-bg: #343434;
+  --viz-explain-head-text: #dcdcdc;
+
+  --viz-dot-bg: #3a3a3a;
+  --viz-dot-border: #1d1d1d;
+  --viz-dot-text: #b0b0b0;
+  --viz-dot-done-bg: #2c3d56;
+  --viz-dot-done-border: #5d8fd6;
+  --viz-dot-done-text: #cfe0ff;
+  --viz-dot-cur-bg: #4772b3;
+  --viz-dot-cur-border: #6a9ad8;
+  --viz-dot-cur-text: #ffffff;
+  --viz-dot-ring: rgba(93, 143, 214, 0.5);
+}
+/* 深色下单元格边框本来就深，描边改用更亮的值以免糊在一起 */
+.theme-blender .bsviz-cell.is-range-start,
+.theme-blender .bsviz-cell.is-range-end { border-color: #5d8fd6; }
+.theme-blender .bsviz-cell.is-in-range { border-color: #2a3b52; }
+
+/* ================= 2. 时间轴：播放控制与步骤的时间关系 ================= */
+.timeline { background: var(--bl-bg); border-top: 1px solid var(--bl-line); }
+
+.tl-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  background: var(--bl-head);
+  border-bottom: 1px solid var(--bl-line);
+}
+
+.tl-transport { display: flex; gap: 2px; margin: 0 auto; align-items: center; }
+.tl-left { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.tl-left select { max-width: 215px; }
+.tl-btn {
+  width: 26px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--bl-widget);
+  color: var(--bl-text);
+  border: 1px solid var(--bl-line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tl-btn svg { width: 12px; height: 12px; fill: currentColor; }
+.tl-btn:hover { background: var(--bl-widget-hover); }
+.tl-btn:active { background: var(--bl-accent); }
+.tl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.tl-btn.is-on { background: var(--bl-accent); border-color: var(--bl-accent-hi); color: #fff; }
+/* 播放/暂停在同一个位置上互斥显示，和 Blender 一致 */
+.tl-transport .btn-pause { display: none; }
+.tl-transport.is-playing .btn-play { display: none; }
+.tl-transport.is-playing .btn-pause { display: inline-flex; }
+
+.tl-right { display: flex; gap: 10px; }
+
+.tl-ruler {
+  position: relative;
+  height: 36px;
+  background: var(--bl-bg);
+  cursor: pointer;
+  overflow: hidden;
+}
+.tl-ruler:focus-visible { outline: 1px solid var(--bl-accent-hi); outline-offset: -1px; }
+
+.tl-ticks { display: flex; height: 100%; }
+.tl-tick {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  border-left: 1px solid var(--bl-line-soft);
+  padding-top: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--bl-text-mute);
+  user-select: none;
+}
+.tl-tick::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  height: 5px;
+  width: 1px;
+  background: var(--bl-line-soft);
+}
+.tl-tick.is-done { color: #8fb4e8; }
+.tl-tick.is-current { color: #fff; background: rgba(71, 114, 179, 0.16); }
+.tl-tick.is-end .tl-dot { background: var(--bl-green); }
+
+.tl-dot {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: #5a5a5a;
+}
+.tl-tick.is-current .tl-dot { background: var(--bl-accent-hi); }
+
+.tl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--bl-accent-hi);
+  pointer-events: none;
+}
+.tl-playhead-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  min-width: 20px;
+  padding: 0 4px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  background: var(--bl-accent-hi);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 0 0 3px 3px;
+  pointer-events: none;
+}
+
+/* ================= 1'. 场景集合大纲（图例搬到这里，Blender 大纲样式） ================= */
+.ol-root { background: var(--bl-panel); border: 1px solid var(--bl-line); border-radius: 4px; overflow: hidden; }
+.ol-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--bl-head);
+  border-bottom: 1px solid var(--bl-line);
+}
+.ol-title { font-size: 11px; font-weight: 600; color: #dcdcdc; }
+.ol-badge {
+  margin-left: auto;
+  font: 10px/15px inherit;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #7a4a00;
+  border: 1px solid #a96a00;
+  color: #ffd9a0;
+}
+
+.ol-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #d0d0d0;
+  user-select: none;
+}
+.ol-group:hover { background: #333; }
+.ol-tri { font-size: 8px; color: var(--bl-text-dim); width: 8px; }
+.ol-group-name { flex: 1 1 auto; }
+
+.ol-items { padding-bottom: 3px; }
+.ol-items.is-collapsed { display: none; }
+
+.ol-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 22px;
+  font-size: 11px;
+  color: #c8c8c8;
+}
+.ol-item:hover { background: #333; }
+.ol-item.is-off { color: #6f6f6f; }
+.ol-item.is-off .ol-mark { opacity: 0.4; }
+
+.ol-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 15px;
+  border-radius: 3px;
+  font: 600 10px/15px inherit;
+  color: #cfcfcf;
+  background: #4a4a4a;
+}
+.ol-mark.is-l { background: var(--bl-accent); color: #fff; }
+.ol-mark.is-r { background: #7a3a3a; color: #ffd2d2; }
+.ol-mark.is-m { background: #2f6b4a; color: #bdf0d4; }
+.ol-mark.is-range { background: #2c3d56; color: #cfe0ff; }
+.ol-mark.is-dim { background: #3a3a3a; color: #8f8f8f; }
+
+.ol-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ol-hint { color: var(--bl-text-mute); font-style: normal; font-size: 10px; margin-left: 4px; }
+.ol-value {
+  font: 11px/16px ui-monospace, Consolas, monospace;
+  color: #e8e8e8;
+  text-align: right;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ol-item.is-off .ol-value { color: #808080; }
+
+/* ================= 3. 属性栏：对应代码 ================= */
+.bl-group { background: var(--bl-panel); border: 1px solid var(--bl-line); border-radius: 4px; margin-bottom: 6px; }
+.bl-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--bl-head);
+  border-radius: 3px 3px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #dcdcdc;
+  cursor: pointer;
+  list-style: none;
+}
+.bl-group > summary::-webkit-details-marker { display: none; }
+.bl-group > summary::before {
+  content: '▶';
+  font-size: 8px;
+  color: var(--bl-text-dim);
+  transition: transform 120ms ease;
+}
+.bl-group[open] > summary::before { transform: rotate(90deg); }
+.bl-group[open] > summary { border-bottom: 1px solid var(--bl-line); }
+.bl-group-body { padding: 8px; }
+.bl-group-body > *:last-child { margin-bottom: 0; }
+
+/* 代码面板（开发替身，正式版由 02 实现） */
+.bscode { background: var(--bl-panel); border: 1px solid var(--bl-line); border-radius: 4px; overflow: hidden; }
+.bscode-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 8px;
+  background: var(--bl-head);
+  border-bottom: 1px solid var(--bl-line);
+}
+.bscode-title { font-size: 11px; font-weight: 600; color: #dcdcdc; }
+.bscode-badge {
+  font: 10px/16px inherit;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: #7a4a00;
+  border: 1px solid #a96a00;
+  color: #ffd9a0;
+}
+
+.bscode-lines { padding: 4px 0; font: 12px/20px ui-monospace, Consolas, monospace; }
+.bscode-line {
+  display: grid;
+  grid-template-columns: 30px 14px 1fr;
+  align-items: baseline;
+  padding: 0 8px;
+  border-left: 3px solid transparent;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.bscode-no { color: var(--bl-text-mute); text-align: right; padding-right: 8px; user-select: none; }
+.bscode-mark { color: var(--bl-accent-hi); font-size: 10px; }
+.bscode-text { white-space: pre; color: #d8d8d8; }
+/* 当前步指向的行。行节点不重建，所以 transition 能补间；切到新行时动画只播一次 */
+.bscode-line.is-active { background: var(--bl-accent); border-left-color: var(--bl-accent-hi); animation: bscode-hit 300ms ease-out; }
+.bscode-line.is-active .bscode-text { color: #fff; font-weight: 600; }
+.bscode-line.is-active .bscode-no { color: #dbe7fa; font-weight: 700; }
+
+.bscode-pointer {
+  margin: 0;
+  padding: 6px 8px;
+  font: 11px/17px inherit;
+  background: var(--bl-head);
+  border-top: 1px solid var(--bl-line);
+  color: #a9c6f0;
+}
+.bscode-pointer.is-missing { background: #5a2020; color: #ffb4a8; }
+.bscode-warn { margin: 0; padding: 6px 8px; font: 11px/17px inherit; background: #5a2020; color: #ffb4a8; }
+
+@keyframes bscode-hit { from { background-color: #6a9ad8; } to { background-color: var(--bl-accent); } }
+
+/* 属性栏里的说明文字与数据块 */
+.bl-hint { margin: 0; font: 11px/17px inherit; color: var(--bl-text-dim); }
+.bl-hint code { background: #3a3a3a; padding: 0 3px; border-radius: 2px; color: #cfcfcf; }
+.bl-pre {
+  margin: 0;
+  padding: 6px 8px;
+  background: #1f1f1f;
+  border: 1px solid var(--bl-line);
+  border-radius: 3px;
+  font: 11px/16px ui-monospace, Consolas, monospace;
+  color: #c8c8c8;
+  max-height: 220px;
+  overflow: auto;
+}
+.bl-list { margin: 0; padding-left: 16px; font: 11px/18px inherit; color: var(--bl-text-dim); }
+.bl-list code { background: #3a3a3a; padding: 0 3px; border-radius: 2px; color: #cfcfcf; }
+.bl-ok { color: var(--bl-green); font-weight: 600; }
+.bl-bad { color: #ff9a8a; font-weight: 600; }
+
+/* ================= 步骤辅导：DeepSeek 官网那种"输入答题窗口" ================= */
+.agent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #212121;   /* DeepSeek 暗色对话底 */
+}
+
+.agent-head {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bl-line);
+}
+.agent-target { font: 600 11px/16px inherit; color: #e8e8e8; }
+.agent-state { font: 10px/16px ui-monospace, Consolas, monospace; color: var(--bl-text-mute); }
+
+.agent-sample-banner {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 5px 12px;
+  font: 11px/17px inherit;
+  background: #7a4a00;
+  color: #ffe6bf;
+  border-bottom: 1px solid #a96a00;
+}
+
+/* 对话流：中间一列，像 DeepSeek 官网那样居中 */
+.agent-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #5a5a5a #212121;
+}
+.agent-log::-webkit-scrollbar { width: 10px; }
+.agent-log::-webkit-scrollbar-track { background: #212121; }
+.agent-log::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 5px; }
+
+.agent-col { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 720px; margin: 0 auto; }
+
+/* 一条消息：头像 + 内容；用户消息整体靠右、气泡染成 DeepSeek 蓝 */
+.agent-msg {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  font: 13px/20px inherit;
+  color: #e8e8e8;
+}
+.agent-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  color: #d0d0d0;
+  font: 600 11px/1 inherit;
+}
+.agent-body {
+  min-width: 0;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: #2f2f2f;
+}
+.agent-msg.is-question { grid-template-columns: minmax(0, 1fr) 26px; }
+.agent-msg.is-question .agent-avatar { grid-column: 2; grid-row: 1; background: #2b3d5c; color: #cfe0ff; }
+.agent-msg.is-question .agent-body { background: #2c3d56; color: #eaf1ff; }
+.agent-msg.is-question .agent-badge { background: #4772b3; }
+
+.agent-msg.is-answer .agent-body { background: #26303a; }
+.agent-msg.is-sample .agent-body { background: #3a2f18; border: 1px dashed #a96a00; color: #ffe6bf; }
+.agent-msg.is-error .agent-body { background: #3a2222; color: #ffcfc6; }
+.agent-msg.is-pending .agent-body { background: #2a2a2a; color: var(--bl-text-dim); }
+.agent-msg.is-system .agent-body { background: #262626; color: var(--bl-text-dim); font-size: 12px; }
+
+.agent-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #4a4a4a;
+  color: #e8e8e8;
+  font: 600 10px/16px inherit;
+  white-space: nowrap;
+}
+.agent-text { display: inline; word-break: break-word; }
+.agent-meta { display: block; margin-top: 5px; font-size: 10px; line-height: 15px; color: #9a9a9a; }
+.agent-retry-row { display: flex; justify-content: flex-start; padding-left: 34px; }
+
+/* 底部输入区：chips + 圆角输入框 + 圆形发送按钮 + 免责行 */
+.agent-composer { flex: 0 0 auto; padding: 8px 12px 6px; border-top: 1px solid var(--bl-line); }
+.agent-hints { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.agent-hint {
+  font: 10px/18px inherit;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: none;
+  border: 1px solid #4a4a4a;
+  color: #c8c8c8;
+  cursor: pointer;
+}
+.agent-hint:hover { background: #333; }
+.agent-hint.is-1 { border-color: #5d8fd6; color: #cfe0ff; }
+.agent-hint.is-3 { border-color: #a96a00; color: #ffd9a0; }
+
+/* 示例文本开关：默认关；打开后变橙色并在对话流顶部常驻横幅 */
+.agent-sample-toggle {
+  font: 10px/18px inherit;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: none;
+  border: 1px dashed #6a6a6a;
+  color: var(--bl-text-dim);
+  cursor: pointer;
+}
+.agent-sample-toggle:hover { background: #333; }
+.agent-sample-toggle.is-on { background: #7a4a00; border-style: solid; border-color: #a96a00; color: #ffe6bf; }
+
+.agent-input-row { display: flex; align-items: center; gap: 8px; }
+.agent-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  background: #2f2f2f;
+  color: var(--bl-text);
+  border: 1px solid #4a4a4a;
+  border-radius: 18px;
+  font: 13px/34px inherit;
+}
+.agent-input::placeholder { color: #8a8a8a; }
+.agent-input:focus-visible { outline: 1px solid var(--bl-accent-hi); }
+
+.agent-send {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--bl-accent-hi);
+  background: var(--bl-accent);
+  color: #fff;
+  font: 600 16px/34px inherit;
+  cursor: pointer;
+}
+.agent-send:hover { background: var(--bl-accent-hi); }
+.agent-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.agent-disclaimer { margin: 6px 0 0; font: 10px/15px inherit; color: var(--bl-text-mute); text-align: center; }
+
+/* ================= 状态栏 ================= */
+.statusbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--bl-head);
+  border-top: 1px solid var(--bl-line);
+  font-size: 11px;
+  color: var(--bl-text-dim);
+}
+.statusbar .sb-right { margin-left: auto; display: flex; gap: 16px; color: var(--bl-text-mute); }
+
+/* ================= 窄屏：退回上下布局（两栏都要有确定高度，画布才不会被压没） ================= */
+@media (max-width: 860px) {
+  .split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) 6px minmax(0, 1.6fr); }
+  .divider { cursor: row-resize; }
+  .divider::after { inset: 1px 42%; }
+  .col-chat, .col-viz { padding: 4px; }
+  .col-panels { max-height: 46%; }
+  .workspaces, .menus { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-blender *,
+  .theme-blender *::before,
+  .theme-blender *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

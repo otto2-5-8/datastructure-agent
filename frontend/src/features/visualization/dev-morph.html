@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 服务端没发 Cache-Control，浏览器会拿旧副本；这两行 + 带版本号的资源链接是给开发时刷新用的保险 -->
+<meta http-equiv="Cache-Control" content="no-store">
+<title>看懂每一步 · 五区工作台（03 UI：代码 / 可视化窗口 / 辅导 / 练习 / 记录）</title>
+
+<!--
+  五区工作台页面（03 的 UI 交付页）—— 代码显示 / 算法可视化窗口 / 步骤辅导 / 过程练习 / 本机记录。
+  03 自己的部分（可视化窗口、时间轴与播放控制、步骤→高亮联动、全屏与窗口拖动）是产品级实现；
+  其它成员负责的区在这里用替身顶住，只为让 03 的 UI 有真实数据可联动（见下面清单）。
+
+  ======== [02 unsupports] 本页里凡是"应该 02 做"的部分都只是替身 ========
+  · 页面壳（顶栏 / 分区胶囊 / 布局 / 传输条位置）→ 02 的 frontend/index.html + app.js
+  · 数组·目标输入框、开始分析、加载/校验/服务失败提示 → 02 的 features/workbench/
+  · 调创建运行接口拿 { runId, steps, sourceLines } → 02 的接口调用层
+    （本页直接读 fixtures/mock-runs.json + mock-source-lines.json 顶着用）
+  · C/C++ 代码面板与 lineId 高亮、left/right/mid 变量面板 → 02 主责
+    （本页「代码显示」区是 03 为了让动画有东西可联动写的替身，界面与高亮逻辑都归 02）
+  · 把 runId + stepIndex 广播给代码面板 / 05 / 07 → 02 的装配层（C06 待提案）
+  · 挂载点与卸载：02 还没有给 03 留 #visualization-panel 之类的正式容器
+  —— 其它替身：步骤辅导 = 05 的位置（接口已接，面板外观与状态仍归 05）、过程练习与本机记录 = 07 的位置。
+  =====================================================================
+-->
+
+<!-- 旧开发页 dev.html（Blender 深色壳）保留不动，这是并列的新页面。 -->
+<!-- 可视化内部的 .bsviz* 样式来自产品模块，必须一起引。资源带 ?v=，避免改了文件刷新还是旧的。 -->
+<link rel="stylesheet" href="./visualization.css">
+<link rel="stylesheet" href="./dev-viz-window.css?v=20261030a">
+<link rel="stylesheet" href="./dev-morph.css?v=20261030a">
+</head>
+<body>
+
+<!-- 背景氛围：纯 CSS 漂移渐变（真实流场画布在参考区 branch02，产品不引用它） -->
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-blob b1"></div>
+  <div class="aurora-blob b2"></div>
+  <div class="aurora-blob b3"></div>
+  <div class="aurora-grid"></div>
+</div>
+
+<div class="app">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="word">deepseek</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span class="proj">数据结构 · 二分查找</span>
+
+      <!-- 24 个极径点组成的形变标记：切区时它自己"流"到下一个形状 -->
+      <svg class="morph" id="glyph" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <radialGradient id="glyphFill" cx="0.36" cy="0.28" r="0.92">
+            <stop offset="0%" stop-color="#8fb4ff"></stop>
+            <stop offset="46%" stop-color="#4176e6"></stop>
+            <stop offset="100%" stop-color="#2d51b8"></stop>
+          </radialGradient>
+        </defs>
+        <path id="glyph-path" d=""></path>
+      </svg>
+    </div>
+    <div class="topbar-right">
+      <select class="ghost-select" id="run-select" aria-label="选择演示案例"></select>
+      <span class="badge" id="mode-badge">mock 数据</span>
+    </div>
+  </header>
+
+  <div id="boot-error" role="alert" hidden></div>
+
+  <!-- 功能区切换：滑动高亮胶囊由弹簧驱动 -->
+  <nav class="dock" id="dock" role="tablist" aria-label="功能区切换">
+    <span class="dock-pill" id="dock-pill" aria-hidden="true"></span>
+    <button class="tab is-active" type="button" role="tab" data-view="code" aria-selected="true">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4.5 2.5 8 6 11.5M10 4.5 13.5 8 10 11.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>代码显示</span>
+    </button>
+    <button class="tab" type="button" role="tab" data-view="viz" aria-selected="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.6" y="8.4" width="2.6" height="5" rx="1" fill="currentColor"/><rect x="6.7" y="5.6" width="2.6" height="7.8" rx="1" fill="currentColor"/><rect x="10.8" y="2.9" width="2.6" height="10.5" rx="1" fill="currentColor"/></svg>
+      <span>算法可视化</span>
+    </button>
+    <button class="tab" type="button" role="tab" data-view="guide" aria-selected="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 4.6h10.8v6.2H8l-2.6 2.2v-2.2H2.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span>步骤辅导</span>
+    </button>
+    <button class="tab" type="button" role="tab" data-view="quiz" aria-selected="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.2 6a2 2 0 1 1 2.4 2.4v1.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8.4" cy="12" r="1" fill="currentColor"/></svg>
+      <span>过程练习</span>
+    </button>
+    <button class="tab" type="button" role="tab" data-view="log" aria-selected="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 5.2V8l2 1.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span>本机记录</span>
+    </button>
+  </nav>
+
+  <p class="view-desc" id="view-desc"></p>
+
+  <!-- 布局控件：单区切换 ↔ 三栏同屏（代码显示 + 算法可视化 + 步骤辅导 摆在同一屏）
+       [02 unsupports] 正式页面里"放几个区、怎么摆"由 02 的页面壳决定；这里只是 03 的演示控件。 -->
+  <div class="layout-toggle" id="layout-toggle" role="group" aria-label="布局">
+    <button type="button" data-layout="split" class="is-on" aria-pressed="true">单区切换</button>
+    <button type="button" data-layout="triptych" aria-pressed="false">三栏同屏</button>
+  </div>
+
+  <section class="stage" id="stage" aria-live="polite">
+    <div class="panels" id="panels">
+
+      <!-- ① 代码显示（[02 unsupports] 正式页面里这一区归 02 的 features/workbench/：输入、代码高亮、变量面板；
+           这里只是为了自测动画联动做的替身，03 不代 02 实现） -->
+      <div class="panel panel-code is-active" id="panel-code" data-view="code" role="tabpanel" aria-label="代码显示">
+        <div class="code-grid">
+          <div class="code-col">
+            <div class="col-head">
+              <code id="code-file">binary_search.c</code>
+              <span id="code-version">sourceVersion —</span>
+            </div>
+            <ol class="code-list" id="code-list"></ol>
+          </div>
+          <aside class="vars-col">
+            <div class="col-head"><span>变量与区间</span><span id="vars-step">第 1 步</span></div>
+            <dl class="vars" id="vars"></dl>
+            <p class="event-line" id="code-event">—</p>
+            <p class="vars-legend"></p>
+          </aside>
+        </div>
+      </div>
+
+      <!-- ② 算法可视化：直接复用旧 dev.html 那个可视化窗口（视口平移缩放 + 时间轴 + 本步解释），由 dev-viz-window.js 装配 -->
+      <div class="panel panel-viz" id="panel-viz" data-view="viz" role="tabpanel" aria-label="算法可视化">
+        <div id="vizwin-host"></div>
+      </div>
+
+      <!-- ③ 步骤辅导（[05 unsupports] 这一区正式归成员 05 的 features/agent/：提问 + 分级提示 + 出处引用；
+           本页只能展示"由步骤推导的本地提示"，不伪造模型回答） -->
+      <div class="panel panel-guide" id="panel-guide" data-view="guide" role="tabpanel" aria-label="步骤辅导">
+        <div class="guide-grid">
+          <aside class="guide-side">
+            <div class="col-head">
+              <span>当前步骤</span>
+              <span id="guide-step">第 1 步</span>
+            </div>
+            <dl class="vars vars-compact" id="guide-context"></dl>
+            <div class="guide-hints">
+              <div class="col-head col-head-plain"><span>本步规则提示</span><span class="muted">由步骤推导</span></div>
+              <ul id="guide-hints"></ul>
+            </div>
+          </aside>
+
+          <div class="guide-chat">
+            <div class="col-head">
+              <span>提问</span>
+              <span class="badge badge-soft" id="guide-badge">辅导：检测中…</span>
+            </div>
+            <div class="guide-messages" id="guide-messages" aria-live="polite"></div>
+            <div class="guide-suggests" id="guide-suggests"></div>
+            <div class="guide-composer">
+              <textarea id="guide-input" rows="2" placeholder="就当前这一步问点什么，例如：为什么下一步要更新 left？"></textarea>
+              <button class="btn" type="button" id="guide-send">提问</button>
+            </div>
+            <p class="guide-note">
+              [before it happens] 提问直接发 POST /api/agent/explain（05 在 main 上已实现）。
+              后端配了 DEEPSEEK_API_KEY 就是真实模型回答（带步骤引用与知识卡出处），
+              未配置 / 限流 / 超时会原样显示后端错误码，再补一段按步骤推导的本地提示——不伪造回答。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 过程练习（[07 unsupports] 正式归成员 07 的 features/exercises/：题库、作答、程序判分、三级提示；
+           这里的三道题是按步骤数据现算的替身，判分逻辑不该由 03 承担） -->
+      <div class="panel panel-quiz" id="panel-quiz" data-view="quiz" role="tabpanel" aria-label="过程练习">
+        <div class="quiz-head">
+          <span id="quiz-progress">第 1 / 3 题</span>
+          <span id="quiz-score">正确 0 / 已答 0</span>
+        </div>
+        <h2 class="quiz-q" id="quiz-q">正在生成题目…</h2>
+        <div class="quiz-opts" id="quiz-opts"></div>
+        <p class="quiz-fb" id="quiz-fb"></p>
+        <div class="quiz-actions">
+          <button class="btn ghost" type="button" id="quiz-hint">看提示</button>
+          <button class="btn" type="button" id="quiz-next">下一题</button>
+          <button class="btn ghost" type="button" id="quiz-restart">重做</button>
+        </div>
+      </div>
+
+      <!-- ⑤ 本机记录（[07 unsupports] 正式归成员 07 的 features/records/：版本化存储键、错题/提示记录、清除；
+           这里的 localStorage 只是替身，键名与字段 07 定了要跟着改） -->
+      <div class="panel panel-log" id="panel-log" data-view="log" role="tabpanel" aria-label="本机记录">
+        <div class="log-head">
+          <span>本机记录 · 只存在这台机器的 localStorage 里</span>
+          <button class="btn ghost small" type="button" id="log-clear">清空</button>
+        </div>
+        <div class="log-summary" id="log-summary"></div>
+        <div class="log-body" id="log-body"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 传输条：只在「代码显示」这一区出现；定宽内容居中，背景整屏铺满并与页面同色
+       [02 unsupports] 这条 bar 的**位置与外观**属 02 的页面壳；03 只提供 playback 的方法与状态，
+       按钮怎么摆、放哪里由 02 的装配层决定。 -->
+  <footer class="transport" id="transport">
+    <div class="transport-inner">
+      <button class="btn ghost" type="button" id="prev" disabled>上一步</button>
+      <button class="btn" type="button" id="play">播放</button>
+      <button class="btn ghost" type="button" id="next">下一步</button>
+      <button class="btn ghost" type="button" id="reset">重置</button>
+      <label class="speed">速度
+        <select id="speed">
+          <option value="2000">2 秒/步</option>
+          <option value="1000" selected>1 秒/步</option>
+          <option value="500">0.5 秒/步</option>
+        </select>
+      </label>
+      <span class="step-count" id="step-count">第 1 步 / 共 5 步</span>
+      <span class="step-desc" id="step-desc"></span>
+    </div>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module" src="./dev-morph.js?v=20261030a"></script>
+</body>
+</html>
