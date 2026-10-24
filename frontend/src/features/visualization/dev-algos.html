@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>同一套播放控制 · 三种算法（03 帧渲染器演示）</title>
+
+<!--
+  换算法演示页（03）。回答一个问题：动画能不能「按算法自己的逻辑」显示？
+
+  能，前提是把渲染器从「二分查找专用」拆成三层：
+      step（引擎输出） → adapter（算法专属：读 step 组装帧） → frame（中性帧） → renderer（通用画格子）
+  本页把二分查找、冒泡排序、线性查找三条轨迹喂给**同一个渲染器 + 同一套播放控制**，
+  区别只在适配换的那个文件（visual/adapters.js），渲染器与播放控制一行没改。
+
+  诚实边界：
+  · 二分查找的步骤来自后端真实引擎（POST /api/algorithms/binary-search/runs），拿不到才退回 fixtures。
+  · 冒泡排序 / 线性查找的步骤是 fixtures/mock-sort-runs.json 里的**静态数据**（开发时生成），
+    **不是**引擎输出 —— 正式要 04 按同一契约产出轨迹，这里只证明渲染层与播放层是算法无关的。
+  · 本页不计算任何算法轨迹。
+-->
+
+<link rel="stylesheet" href="./visualization.css">
+<link rel="stylesheet" href="./visual/array-renderer.css">
+<link rel="stylesheet" href="./dev-algos.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">03 · 可视化 · 换算法验证</p>
+      <h1>同一套播放控制，三种算法各自的画法</h1>
+      <p>换算法不用改渲染器：只换「step → 帧」的适配器。二分查找画区间和 L/R/M，冒泡画 j / j+1 与已排序区，
+        线性查找只画一个游标——同一份播放控制、同一套格子和配色。</p>
+    </div>
+    <a class="back" href="./dev-morph.html">← 回到五区工作台</a>
+  </header>
+
+  <section class="card toolbar" aria-label="算法与播放控制">
+    <label class="field" for="algo-select">算法 / 用例
+      <select id="algo-select"></select>
+    </label>
+    <span class="source-badge" id="source-badge" data-source="mock">数据来源：读取中…</span>
+    <span class="spacer"></span>
+    <span class="counter" id="counter">第 1 步 / 共 1 步</span>
+    <button class="btn" type="button" id="btn-reset" title="回到第一步">⏮ 重置</button>
+    <button class="btn" type="button" id="btn-prev">◀ 上一步</button>
+    <button class="btn primary" type="button" id="btn-play">▶ 播放</button>
+    <button class="btn" type="button" id="btn-next">下一步 ▶</button>
+    <label class="field" for="speed-select">速度
+      <select id="speed-select">
+        <option value="2000">2 秒/步</option>
+        <option value="1000" selected>1 秒/步</option>
+        <option value="500">0.5 秒/步</option>
+        <option value="250">0.25 秒/步</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="card" aria-label="动画区">
+    <div id="stage" aria-live="polite"></div>
+  </section>
+
+  <section class="notes">
+    <div class="card note">
+      <h2>为什么换个算法还能用</h2>
+      <div class="pipeline">
+        <span>step（引擎输出）</span><i>→</i><span>adapter（算法专属）</span><i>→</i><span>frame（中性帧）</span><i>→</i><span>renderer（通用）</span>
+      </div>
+      <ul>
+        <li>渲染器只认 <code>{ cells, pointers, range, caption }</code>，不认 <code>left/right/mid</code></li>
+        <li>指针数量、名字、含义由算法自己定：二分是 <code>L/R/M</code>，冒泡是 <code>j / j+1</code>，线性是 <code>cursor</code></li>
+        <li>播放控制（<code>createPlayback</code>）本来就与算法无关，只认 steps 数组长度与下标</li>
+      </ul>
+    </div>
+    <div class="card note">
+      <h2>真正接一个新算法要做什么</h2>
+      <ul>
+        <li><strong>04（引擎）</strong>：按步骤契约输出轨迹（每步一个状态快照 + 该算法的语义字段）</li>
+        <li><strong>03（渲染）</strong>：加一个 <code>xxxFrame(step)</code> 适配器，必要时加一种 <code>kind</code>（数组 / 树 / 图 / 链表）</li>
+        <li><strong>02（装配）</strong>：把新算法的运行接到同一套播放控制与步骤分发上</li>
+        <li>契约要泛化：现在的 <code>step.schema.json</code> 把 <code>algorithm</code> 写死成 <code>binary-search</code>、<code>variables</code> 必须含 left/right/mid</li>
+      </ul>
+    </div>
+    <div class="card note">
+      <h2>本页的诚实边界</h2>
+      <ul>
+        <li>二分查找步骤 = 后端真实引擎（<code>POST /api/algorithms/binary-search/runs</code>），失败才用 fixtures</li>
+        <li>冒泡 / 线性查找步骤 = <code>fixtures/mock-sort-runs.json</code> 静态数据，<strong>不是引擎输出</strong></li>
+        <li>前端不计算任何轨迹；「上一步」是整帧重画，真恢复不是回退动画</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+<script type="module" src="./dev-algos.js?v=20261030a"></script>
+</body>
+</html>

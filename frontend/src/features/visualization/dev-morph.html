@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -28,8 +28,8 @@
 <!-- 旧开发页 dev.html（Blender 深色壳）保留不动，这是并列的新页面。 -->
 <!-- 可视化内部的 .bsviz* 样式来自产品模块，必须一起引。资源带 ?v=，避免改了文件刷新还是旧的。 -->
 <link rel="stylesheet" href="./visualization.css">
-<link rel="stylesheet" href="./dev-viz-window.css?v=20261030a">
-<link rel="stylesheet" href="./dev-morph.css?v=20261030a">
+<link rel="stylesheet" href="./dev-viz-window.css?v=20261030b">
+<link rel="stylesheet" href="./dev-morph.css?v=20261030b">
 </head>
 <body>
 
@@ -66,6 +66,7 @@
     <div class="topbar-right">
       <select class="ghost-select" id="run-select" aria-label="选择演示案例"></select>
       <span class="badge" id="mode-badge">mock 数据</span>
+      <a class="topbar-link" href="./dev-algos.html" title="同一套渲染器与播放控制，换成冒泡排序 / 线性查找">换算法演示 →</a>
     </div>
   </header>
 
@@ -225,6 +226,6 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script type="module" src="./dev-morph.js?v=20261030a"></script>
+<script type="module" src="./dev-morph.js?v=20261030b"></script>
 </body>
 </html>

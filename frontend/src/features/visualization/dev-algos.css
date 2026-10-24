@@ -1,0 +1,125 @@
+/* dev-algos.css —— 「换算法」演示页的样式（03）
+   视觉 token 沿用 visualization.css 的 --viz-*，这样和产品里的二分查找动画是一套配色。 */
+
+:root {
+  color-scheme: light;
+  --page-bg: #f5f7fb;
+  --card-bg: #ffffff;
+  --card-border: #dbe3ef;
+  --card-shadow: 0 1px 2px rgba(23, 32, 51, 0.06), 0 12px 28px rgba(23, 32, 51, 0.06);
+  --ink: #172033;
+  --ink-2: #47556b;
+  --ink-3: #7a8699;
+  --brand: #2d51b8;
+  --brand-soft: rgba(65, 118, 230, 0.1);
+  --font: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 28px 24px 56px;
+  background:
+    radial-gradient(1100px 520px at 12% -10%, #e8efff 0%, rgba(232, 239, 255, 0) 60%),
+    radial-gradient(900px 480px at 92% 0%, #eef6ff 0%, rgba(238, 246, 255, 0) 55%),
+    var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.page-head h1 { margin: 0 0 6px; font-size: 25px; letter-spacing: -0.4px; }
+.page-head p { margin: 0; max-width: 720px; font-size: 13.5px; line-height: 1.75; color: var(--ink-2); }
+.eyebrow { margin: 0 0 6px; font-size: 11.5px; letter-spacing: 2.2px; color: var(--ink-3); }
+.back { font-size: 12.5px; color: var(--brand); text-decoration: none; }
+.back:hover { text-decoration: underline; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  padding: 18px 20px;
+}
+
+/* ---------------------------------------------------------------- 工具条 */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar .spacer { flex: 1 1 auto; }
+.field { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+.field select {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: #fff;
+  color: var(--ink);
+  max-width: 420px;
+}
+.field select:focus-visible { outline: 3px solid #94b3ff; outline-offset: 2px; }
+
+.btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--card-border);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.btn:hover:not(:disabled) { background: #f2f6ff; border-color: #b9cdf3; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: #24459c; }
+
+.counter { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.source-badge {
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.source-badge[data-source="api"] { border-color: rgba(65, 118, 230, 0.45); color: var(--brand); }
+.source-badge[data-source="mock"] { border-color: rgba(206, 148, 36, 0.45); color: #8a6a12; }
+
+/* ---------------------------------------------------------------- 帧渲染器
+   渲染器自己的样式跟渲染器一起走：见 visual/array-renderer.css */
+#stage { min-height: 220px; }
+
+/* ---------------------------------------------------------------- 说明区 */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.note h2 { margin: 0 0 8px; font-size: 14px; }
+.note p, .note li { font-size: 12.5px; line-height: 1.75; color: var(--ink-2); }
+.note p { margin: 0 0 8px; }
+.note ul { margin: 0; padding-left: 18px; }
+.note li { margin-bottom: 4px; }
+.note code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  background: rgba(9, 45, 78, 0.06);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.note strong { color: var(--ink); }
+.pipeline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 10px; }
+.pipeline span {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.pipeline i { color: var(--ink-3); font-style: normal; font-size: 11px; }
+
+@media (max-width: 640px) {
+  body { padding: 18px 12px 40px; }
+}

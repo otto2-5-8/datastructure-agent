@@ -1,0 +1,456 @@
+{
+  "schemaVersion": "mock-frame-1.0",
+  "note": "静态 fixture：用于演示「换算法 = 换适配器」的渲染能力，不是引擎输出；正式轨迹由 04 的引擎产出。",
+  "algorithms": [
+    {
+      "algorithm": "bubble-sort",
+      "label": "冒泡排序 [5, 2, 9, 1]（双指针 j / j+1 + 已排序区）",
+      "kind": "sorting",
+      "sourceVersion": "mock-bubble-v1",
+      "array": [
+        5,
+        2,
+        9,
+        1
+      ],
+      "steps": [
+        {
+          "stepIndex": 0,
+          "event": "swap",
+          "array": [
+            2,
+            5,
+            9,
+            1
+          ],
+          "pass": 1,
+          "j": 0,
+          "comparing": [
+            0,
+            1
+          ],
+          "values": [
+            5,
+            2
+          ],
+          "swapped": true,
+          "sortedFrom": 4,
+          "done": false
+        },
+        {
+          "stepIndex": 1,
+          "event": "compare",
+          "array": [
+            2,
+            5,
+            9,
+            1
+          ],
+          "pass": 1,
+          "j": 1,
+          "comparing": [
+            1,
+            2
+          ],
+          "values": [
+            5,
+            9
+          ],
+          "swapped": false,
+          "sortedFrom": 4,
+          "done": false
+        },
+        {
+          "stepIndex": 2,
+          "event": "swap",
+          "array": [
+            2,
+            5,
+            1,
+            9
+          ],
+          "pass": 1,
+          "j": 2,
+          "comparing": [
+            2,
+            3
+          ],
+          "values": [
+            9,
+            1
+          ],
+          "swapped": true,
+          "sortedFrom": 4,
+          "done": false
+        },
+        {
+          "stepIndex": 3,
+          "event": "pass-end",
+          "array": [
+            2,
+            5,
+            1,
+            9
+          ],
+          "pass": 1,
+          "j": null,
+          "comparing": [],
+          "swapped": false,
+          "sortedFrom": 3,
+          "done": false
+        },
+        {
+          "stepIndex": 4,
+          "event": "compare",
+          "array": [
+            2,
+            5,
+            1,
+            9
+          ],
+          "pass": 2,
+          "j": 0,
+          "comparing": [
+            0,
+            1
+          ],
+          "values": [
+            2,
+            5
+          ],
+          "swapped": false,
+          "sortedFrom": 3,
+          "done": false
+        },
+        {
+          "stepIndex": 5,
+          "event": "swap",
+          "array": [
+            2,
+            1,
+            5,
+            9
+          ],
+          "pass": 2,
+          "j": 1,
+          "comparing": [
+            1,
+            2
+          ],
+          "values": [
+            5,
+            1
+          ],
+          "swapped": true,
+          "sortedFrom": 3,
+          "done": false
+        },
+        {
+          "stepIndex": 6,
+          "event": "pass-end",
+          "array": [
+            2,
+            1,
+            5,
+            9
+          ],
+          "pass": 2,
+          "j": null,
+          "comparing": [],
+          "swapped": false,
+          "sortedFrom": 2,
+          "done": false
+        },
+        {
+          "stepIndex": 7,
+          "event": "swap",
+          "array": [
+            1,
+            2,
+            5,
+            9
+          ],
+          "pass": 3,
+          "j": 0,
+          "comparing": [
+            0,
+            1
+          ],
+          "values": [
+            2,
+            1
+          ],
+          "swapped": true,
+          "sortedFrom": 2,
+          "done": false
+        },
+        {
+          "stepIndex": 8,
+          "event": "pass-end",
+          "array": [
+            1,
+            2,
+            5,
+            9
+          ],
+          "pass": 3,
+          "j": null,
+          "comparing": [],
+          "swapped": false,
+          "sortedFrom": 1,
+          "done": true
+        },
+        {
+          "stepIndex": 9,
+          "event": "done",
+          "array": [
+            1,
+            2,
+            5,
+            9
+          ],
+          "pass": null,
+          "j": null,
+          "comparing": [],
+          "swapped": false,
+          "sortedFrom": 0,
+          "done": true
+        }
+      ],
+      "result": [
+        1,
+        2,
+        5,
+        9
+      ]
+    },
+    {
+      "algorithm": "linear-search",
+      "label": "线性查找 [4, 8, 15, 16, 23, 42] 找 15（单游标 cursor）",
+      "kind": "searching",
+      "sourceVersion": "mock-linear-v1",
+      "array": [
+        4,
+        8,
+        15,
+        16,
+        23,
+        42
+      ],
+      "target": 15,
+      "steps": [
+        {
+          "stepIndex": 0,
+          "event": "init",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 15,
+          "cursor": -1,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 1,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 15,
+          "cursor": 0,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 2,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 15,
+          "cursor": 1,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 3,
+          "event": "found",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 15,
+          "cursor": 2,
+          "result": 2,
+          "done": true
+        }
+      ],
+      "result": 2
+    },
+    {
+      "algorithm": "linear-search",
+      "label": "线性查找 [4, 8, 15, 16, 23, 42] 找 7（未找到）",
+      "kind": "searching",
+      "sourceVersion": "mock-linear-v1",
+      "array": [
+        4,
+        8,
+        15,
+        16,
+        23,
+        42
+      ],
+      "target": 7,
+      "steps": [
+        {
+          "stepIndex": 0,
+          "event": "init",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": -1,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 1,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 0,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 2,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 1,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 3,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 2,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 4,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 3,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 5,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 4,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 6,
+          "event": "probe",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 5,
+          "result": null,
+          "done": false
+        },
+        {
+          "stepIndex": 7,
+          "event": "not-found",
+          "array": [
+            4,
+            8,
+            15,
+            16,
+            23,
+            42
+          ],
+          "target": 7,
+          "cursor": 5,
+          "result": -1,
+          "done": true
+        }
+      ],
+      "result": -1
+    }
+  ]
+}

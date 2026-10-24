@@ -1,0 +1,82 @@
+/* array-renderer.css —— 通用数组帧渲染器的样式（03）
+   只依赖 visualization.css 里的 --viz-* token（都带 fallback，单独引也能看）。
+   渲染器本身不认识任何算法：状态来自 frame.cells[].state，指针来自 frame.pointers[*].tone。 */
+
+.arender { display: block; }
+.arender-track { overflow-x: auto; padding: 6px 2px 2px; }
+.arender-track[data-empty="true"] { min-height: 150px; display: grid; place-items: center; color: #7a8699; font-size: 13px; }
+
+.arender-cells { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: flex-end; }
+
+.arender-cell {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  padding: 8px 0 0;
+  border-radius: 10px;
+  background: var(--viz-cell-bg, #fff);
+  border: 1px solid var(--viz-cell-border, #c7d0de);
+  text-align: center;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, opacity 160ms ease;
+}
+
+.arender-ptr-lane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 18px;
+  margin-bottom: 4px;
+}
+.arender-ptr {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.arender-ptr.is-l { color: var(--viz-ptr-l-fg, #0b5cad); background: var(--viz-ptr-l-bg, #e7f1fd); }
+.arender-ptr.is-r { color: var(--viz-ptr-r-fg, #8a4b00); background: var(--viz-ptr-r-bg, #fdf1e0); }
+.arender-ptr.is-m { color: var(--viz-ptr-m-fg, #0a6b4a); background: var(--viz-ptr-m-bg, #e6f6ef); }
+.arender-ptr.is-i { color: #6a3fa8; background: #f1e9fd; }
+.arender-ptr.is-j { color: #a1385c; background: #fde9f0; }
+
+.arender-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 0 6px;
+}
+.arender-index { display: block; font-size: 11px; color: var(--viz-index-text, #5a6678); padding-bottom: 6px; }
+
+/* 状态语义（与二分查找渲染器一致，换算法后含义不变）：
+   is-in-range 在当前候选区 / is-excluded 已排除 / is-compare 正在比较
+   is-active 当前关注点 / is-swapped 刚交换 / is-match 命中 / is-sorted 已归位 */
+.arender-cell.is-in-range { background: var(--viz-range-bg, #eef4ff); border-color: #b9cdf3; }
+.arender-cell.is-excluded { opacity: 0.42; }
+.arender-cell.is-compare { border-color: #b58b17; background: #fdf6e3; transform: translateY(-3px); }
+.arender-cell.is-active { border-color: var(--viz-mid-edge, #0a6b4a); background: var(--viz-mid-ring, #b6e2d0); }
+.arender-cell.is-swapped { border-color: #a1385c; background: #fde9f0; transform: translateY(-3px); }
+.arender-cell.is-match { border-color: var(--viz-found-edge, #0a6b4a); background: var(--viz-found-bg, #dff5e6); }
+.arender-cell.is-sorted { background: #eef7f0; border-color: #b7ddc4; }
+
+.arender-caption {
+  margin: 14px 0 0;
+  min-height: 22px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #47556b;
+}
+
+.arender-dots { display: flex; gap: 5px; list-style: none; margin: 12px 0 0; padding: 0; }
+.arender-dot { width: 7px; height: 7px; border-radius: 50%; background: #d7dfec; }
+.arender-dot.is-past { background: #b9cdf3; }
+.arender-dot.is-current { background: #2d51b8; transform: scale(1.25); }
+
+@media (max-width: 640px) {
+  .arender-cell { width: 60px; }
+  .arender-value { font-size: 17px; }
+}
